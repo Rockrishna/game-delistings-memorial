@@ -1,12 +1,12 @@
-import { Prisma } from "@prisma/client";
+import { DelistingType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type PlatformBadge = "steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default";
 export type EventStatus = "recent" | "upcoming" | "delisted";
 
-function asStatus(type: string): EventStatus {
-  if (type === "RECENT") return "recent";
-  if (type === "UPCOMING") return "upcoming";
+function asStatus(type: DelistingType): EventStatus {
+  if (type === DelistingType.RECENT) return "recent";
+  if (type === DelistingType.UPCOMING) return "upcoming";
   return "delisted";
 }
 
@@ -32,13 +32,13 @@ const eventInclude = {
 export async function getHomePageData() {
   const [recent, upcoming, totalEvents] = await Promise.all([
     prisma.delistingEvent.findMany({
-      where: { type: "RECENT" },
+      where: { type: DelistingType.RECENT },
       include: eventInclude,
       orderBy: { delistDate: "desc" },
       take: 6,
     }),
     prisma.delistingEvent.findMany({
-      where: { type: "UPCOMING" },
+      where: { type: DelistingType.UPCOMING },
       include: eventInclude,
       orderBy: { delistDate: "asc" },
       take: 6,
@@ -127,7 +127,7 @@ export async function getTimelineData({
 export async function getMortuaryData(search?: string) {
   const rows = await prisma.delistingEvent.findMany({
     where: {
-      type: "DELISTED",
+      type: DelistingType.DELISTED,
       game: search
         ? {
             is: {

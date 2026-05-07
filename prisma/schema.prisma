@@ -3,8 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum DelistingType {
+  RECENT
+  UPCOMING
+  DELISTED
 }
 
 model Game {
@@ -65,17 +72,17 @@ model GameGenre {
 }
 
 model DelistingEvent {
-  id          String       @id @default(cuid())
-  gameId       String
-  type        String
+  id          String        @id @default(cuid())
+  gameId      String
+  type        DelistingType
   delistDate  DateTime
   announcedAt DateTime?
   reason      String?
   sourceUrl   String?
   notes       String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  game        Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  game        Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@index([type, delistDate])
 }

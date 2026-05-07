@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-const { PrismaClient } = require("@prisma/client");
+const { PrismaClient, DelistingType } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
@@ -44,7 +44,7 @@ async function main() {
       genreSlugs: ["action", "adventure"],
       events: [
         {
-          type: "RECENT",
+          type: DelistingType.RECENT,
           delistDate: new Date("2024-02-01"),
           reason: "Storefront publishing change",
           sourceUrl: "https://www.playstation.com/",
@@ -63,7 +63,7 @@ async function main() {
       genreSlugs: ["rpg", "adventure"],
       events: [
         {
-          type: "RECENT",
+          type: DelistingType.RECENT,
           delistDate: new Date("2024-01-20"),
           reason: "License refresh period",
           sourceUrl: "https://store.steampowered.com/",
@@ -82,7 +82,7 @@ async function main() {
       genreSlugs: ["rpg", "action"],
       events: [
         {
-          type: "UPCOMING",
+          type: DelistingType.UPCOMING,
           delistDate: new Date("2026-08-30"),
           announcedAt: new Date("2026-05-01"),
           reason: "Marketplace agreement expiry",
@@ -102,7 +102,7 @@ async function main() {
       genreSlugs: ["horror", "adventure"],
       events: [
         {
-          type: "DELISTED",
+          type: DelistingType.DELISTED,
           delistDate: new Date("2015-04-29"),
           reason: "Permanent removal",
           sourceUrl: "https://www.konami.com/",

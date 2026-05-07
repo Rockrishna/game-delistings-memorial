@@ -12,10 +12,10 @@ Modern Next.js website for tracking recently delisted games, upcoming delistings
    ```powershell
    Copy-Item .env.example .env
    ```
-3. Create database and generate Prisma client:
+3. Start local Postgres and run migrations:
    ```powershell
-   npm run prisma:push
-   npm run prisma:generate
+   docker compose up -d postgres
+   npm run prisma:migrate
    npm run db:seed
    ```
 4. Start development server:
@@ -33,7 +33,8 @@ docker compose up --build
 
 Configure these environment variables in **Project Settings -> Environment Variables**:
 
-- `DATABASE_URL` (managed Postgres preferred for production)
+- `DATABASE_URL` (pooled runtime connection string from Vercel Postgres)
+- `DIRECT_URL` (direct non-pooled connection for Prisma migrations)
 - `IGDB_CLIENT_ID`
 - `IGDB_CLIENT_SECRET`
 - `INGEST_API_KEY` (required to call the protected ingestion route)
@@ -41,7 +42,7 @@ Configure these environment variables in **Project Settings -> Environment Varia
 ### Deployment checklist
 
 1. Push to `main`.
-2. Ensure Vercel Build Command is `npm run build`.
+2. Ensure Vercel Build Command is `npm run prisma:migrate && npm run build`.
 3. Ensure Install Command is `npm install`.
 4. Confirm `/api/health/db` returns `{ "ok": true }`.
 
@@ -57,5 +58,4 @@ Configure these environment variables in **Project Settings -> Environment Varia
 ## Notes
 
 - IGDB provides game metadata/media, not a complete canonical delisting feed.
-- Delisting events are intentionally stored locally for curation and reliability.
-- Default local SQLite URL is `file:./dev.db`.
+- Delisting events are intentionally stored in your own DB for curation and reliability.

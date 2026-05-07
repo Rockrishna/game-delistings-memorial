@@ -1,4 +1,15 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: game_delistings
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   app:
     image: game-delistings-tracker:dev
     build:
@@ -6,6 +17,8 @@ services:
       dockerfile: Dockerfile
       target: deps
     command: npm run dev
+    depends_on:
+      - postgres
     ports:
       - "3000:3000"
     volumes:
@@ -13,4 +26,8 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
-      DATABASE_URL: file:./dev.db
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
+
+volumes:
+  postgres_data:
