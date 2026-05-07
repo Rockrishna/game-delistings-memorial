@@ -27,7 +27,6 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
-      DIRECT_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
 
 volumes:
   postgres_data:

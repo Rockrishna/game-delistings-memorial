@@ -34,7 +34,6 @@ docker compose up --build
 Configure these environment variables in **Project Settings -> Environment Variables**:
 
 - `DATABASE_URL` (pooled runtime connection string from Vercel Postgres)
-- `DIRECT_URL` (direct non-pooled connection for Prisma migrations)
 - `IGDB_CLIENT_ID`
 - `IGDB_CLIENT_SECRET`
 - `INGEST_API_KEY` (required to call the protected ingestion route)
