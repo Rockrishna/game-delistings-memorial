@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  experimental: {
+    optimizePackageImports: ["@radix-ui/react-*"],
+  },
+  typescript: {
+    tsconfigPath: "./tsconfig.json",
+  },
 };
 
 export default nextConfig;
