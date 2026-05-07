@@ -1,27 +1,32 @@
 import Badge from "@/components/common/Badge";
+import type { PlatformType, StatusType } from "@/components/common/Badge";
 import Link from "next/link";
 
 interface GameCardProps {
   id: string;
+  slug?: string;
   title: string;
   coverUrl?: string;
   platforms: string[];
+  platformBadges?: PlatformType[];
   delistDate: string;
-  status: "recent" | "upcoming" | "delisted";
+  status: StatusType;
   sourceUrl?: string;
 }
 
 export default function GameCard({
   id,
+  slug,
   title,
   coverUrl,
   platforms,
+  platformBadges,
   delistDate,
   status,
   sourceUrl,
 }: GameCardProps) {
   return (
-    <Link href={`/games/${id}`}>
+    <Link href={`/games/${slug ?? id}`}>
       <div className="group bg-[#171d2e] border border-[#2a3248] rounded-lg overflow-hidden hover:border-[#8b5cf6] hover:shadow-lg transition-all cursor-pointer h-full">
         {/* Cover Art */}
         <div className="relative aspect-video bg-[#20283d] overflow-hidden">
@@ -48,14 +53,24 @@ export default function GameCard({
 
           {/* Platforms */}
           <div className="flex flex-wrap gap-1">
-            {platforms.map((platform) => (
-              <Badge key={platform} label={platform} variant={platform as any} />
+            {platforms.map((platform, index) => (
+              <Badge
+                key={`${platform}-${index}`}
+                label={platform}
+                variant={platformBadges?.[index] ?? "default"}
+              />
             ))}
           </div>
 
           {/* Date & Status */}
           <div className="flex items-center justify-between pt-2 border-t border-[#2a3248]">
-            <span className="text-xs text-[#95a0c3]">{delistDate}</span>
+            <span className="text-xs text-[#95a0c3]">
+              {new Date(delistDate).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
             <Badge label={status} variant={status} />
           </div>
 

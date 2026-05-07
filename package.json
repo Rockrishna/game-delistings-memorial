@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 3000",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start --hostname 0.0.0.0 --port 3000",
-    "lint": "next lint"
+    "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:migrate": "prisma migrate deploy",
+    "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

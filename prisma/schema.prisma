@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Game {
+  id             String          @id @default(cuid())
+  igdbId         Int?            @unique
+  slug           String          @unique
+  name           String
+  summary        String?
+  firstReleaseAt DateTime?
+  coverUrl       String?
+  artworkUrls    String?
+  rating         Float?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  platforms      GamePlatform[]
+  genres         GameGenre[]
+  events         DelistingEvent[]
+  assets         MediaAsset[]
+}
+
+model Platform {
+  id           String         @id @default(cuid())
+  igdbId       Int?           @unique
+  slug         String         @unique
+  name         String
+  abbreviation String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  games        GamePlatform[]
+}
+
+model Genre {
+  id        String     @id @default(cuid())
+  igdbId    Int?       @unique
+  slug      String     @unique
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  games     GameGenre[]
+}
+
+model GamePlatform {
+  gameId     String
+  platformId String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  platform   Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, platformId])
+}
+
+model GameGenre {
+  gameId  String
+  genreId String
+  game    Game  @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, genreId])
+}
+
+model DelistingEvent {
+  id          String       @id @default(cuid())
+  gameId       String
+  type        String
+  delistDate  DateTime
+  announcedAt DateTime?
+  reason      String?
+  sourceUrl   String?
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  game        Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([type, delistDate])
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  gameId     String
+  type      String
+  url       String
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, type])
+}

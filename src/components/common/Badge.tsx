@@ -1,5 +1,5 @@
-type StatusType = "recent" | "upcoming" | "delisted";
-type PlatformType =
+export type StatusType = "recent" | "upcoming" | "delisted";
+export type PlatformType =
   | "steam"
   | "playstation"
   | "xbox"
