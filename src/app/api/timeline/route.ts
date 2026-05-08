@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTimelineData } from "@/lib/data";
+import { ensureSeeded } from "@/lib/autoseed";
+
+export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureSeeded();
     const searchParams = request.nextUrl.searchParams;
     const q = searchParams.get("q") ?? undefined;
     const platform = searchParams.get("platform") ?? undefined;
