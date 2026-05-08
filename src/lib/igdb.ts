@@ -95,10 +95,13 @@ function toSlug(value: string) {
 
 export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDBGame | null> {
   const escaped = name.replace(/"/g, '\\"');
-  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.id,platforms.name,platforms.abbreviation,platforms.slug,genres.id,genres.name,genres.slug; search "${escaped}"; where version_parent = null & category = (0,4,8,9); limit 1;`;
+  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.id,platforms.name,platforms.abbreviation,platforms.slug,genres.id,genres.name,genres.slug; search "${escaped}"; limit 5;`;
   const rows = await queryIGDB<IGDBGame>("games", query);
   if (!rows.length) return null;
-  return mapIGDBRow(rows[0]);
+  // Prefer the row that matches title exactly (case-insensitive); fall back to first.
+  const lower = name.toLowerCase();
+  const exact = rows.find((row) => row.name.toLowerCase() === lower);
+  return mapIGDBRow(exact ?? rows[0]);
 }
 
 function mapIGDBRow(row: IGDBGame): NormalizedIGDBGame {
