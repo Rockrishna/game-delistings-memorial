@@ -30,12 +30,13 @@ const eventInclude = {
 } satisfies Prisma.DelistingEventInclude;
 
 export async function getHomePageData() {
-  const [recent, upcoming, totalEvents] = await Promise.all([
+  const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
+  const [recent, upcoming, lead, totalEvents, thisYearCount, allEvents] = await Promise.all([
     prisma.delistingEvent.findMany({
       where: { type: DelistingType.RECENT },
       include: eventInclude,
       orderBy: { delistDate: "desc" },
-      take: 6,
+      take: 9,
     }),
     prisma.delistingEvent.findMany({
       where: { type: DelistingType.UPCOMING },
@@ -43,18 +44,74 @@ export async function getHomePageData() {
       orderBy: { delistDate: "asc" },
       take: 6,
     }),
+    prisma.delistingEvent.findFirst({
+      where: { type: DelistingType.RECENT },
+      include: eventInclude,
+      orderBy: { delistDate: "desc" },
+    }),
     prisma.delistingEvent.count(),
+    prisma.delistingEvent.count({
+      where: {
+        type: { in: [DelistingType.RECENT, DelistingType.DELISTED] },
+        delistDate: { gte: yearStart },
+      },
+    }),
+    prisma.delistingEvent.findMany({
+      include: { game: { include: { platforms: { include: { platform: true } } } } },
+    }),
   ]);
+
+  const causeCounts = new Map<string, number>();
+  const platformCounts = new Map<string, number>();
+  for (const event of allEvents) {
+    if (event.reason) {
+      const key = normaliseCause(event.reason);
+      causeCounts.set(key, (causeCounts.get(key) ?? 0) + 1);
+    }
+    for (const platform of event.game.platforms) {
+      const name = platform.platform.name;
+      platformCounts.set(name, (platformCounts.get(name) ?? 0) + 1);
+    }
+  }
+
+  const topCause = topEntry(causeCounts) ?? "Undisclosed";
+  const topPlatform = topEntry(platformCounts) ?? "—";
 
   return {
     stats: {
       recent: recent.length,
       upcoming: upcoming.length,
       total: totalEvents,
+      thisYear: thisYearCount,
+      topCause,
+      topPlatform,
     },
+    lead: lead ? mapLead(lead) : null,
     recent: recent.map(mapEventCard),
     upcoming: upcoming.map(mapEventCard),
   };
+}
+
+function normaliseCause(reason: string): string {
+  const trimmed = reason.trim();
+  if (!trimmed) return "Undisclosed";
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("license") || lower.includes("licence")) return "License Expiry";
+  if (lower.includes("server") || lower.includes("shutdown")) return "Service Shutdown";
+  if (lower.includes("publish")) return "Publisher Decision";
+  if (lower.includes("storefront") || lower.includes("store closure")) return "Storefront Closure";
+  if (lower.includes("replace") || lower.includes("definitive") || lower.includes("re-release"))
+    return "Replaced";
+  if (lower.includes("agreement") || lower.includes("contract")) return "Agreement Lapse";
+  return trimmed.length > 28 ? `${trimmed.slice(0, 25).trim()}…` : trimmed;
+}
+
+function topEntry(map: Map<string, number>): string | null {
+  let best: [string, number] | null = null;
+  for (const entry of map.entries()) {
+    if (!best || entry[1] > best[1]) best = entry;
+  }
+  return best ? best[0] : null;
 }
 
 export async function getTimelineData({
@@ -201,6 +258,25 @@ function mapEventCard(event: Prisma.DelistingEventGetPayload<{ include: typeof e
     delistDate: event.delistDate.toISOString(),
     status: asStatus(event.type),
     sourceUrl: event.sourceUrl,
+    releaseYear: event.game.firstReleaseAt?.getUTCFullYear() ?? null,
+    reason: event.reason ?? null,
+    daysFromNow: Math.round((event.delistDate.getTime() - Date.now()) / 86_400_000),
+  };
+}
+
+function mapLead(event: Prisma.DelistingEventGetPayload<{ include: typeof eventInclude }>) {
+  return {
+    id: event.game.id,
+    slug: event.game.slug,
+    title: event.game.name,
+    summary: event.game.summary ?? null,
+    coverUrl: event.game.coverUrl,
+    platforms: event.game.platforms.map((platform) => platform.platform.name),
+    genres: event.game.genres.map((genre) => genre.genre.name),
+    delistDate: event.delistDate.toISOString(),
+    releaseYear: event.game.firstReleaseAt?.getUTCFullYear() ?? null,
+    reason: event.reason ?? null,
+    sourceUrl: event.sourceUrl ?? null,
   };
 }
 
@@ -214,5 +290,53 @@ function mapTimelineItem(event: Prisma.DelistingEventGetPayload<{ include: typeo
     platformBadges: event.game.platforms.map((platform) => asPlatformBadge(platform.platform.slug)),
     status: asStatus(event.type),
     delistDate: event.delistDate.toISOString(),
+    reason: event.reason ?? null,
+    releaseYear: event.game.firstReleaseAt?.getUTCFullYear() ?? null,
+    daysFromNow: Math.round((event.delistDate.getTime() - Date.now()) / 86_400_000),
+  };
+}
+
+export async function getMortuaryFacets() {
+  const events = await prisma.delistingEvent.findMany({
+    where: { type: DelistingType.DELISTED },
+    include: {
+      game: {
+        include: { platforms: { include: { platform: true } }, genres: { include: { genre: true } } },
+      },
+    },
+  });
+
+  const platforms = new Map<string, number>();
+  const causes = new Map<string, number>();
+  const decades = new Map<string, number>();
+  const genres = new Map<string, number>();
+
+  for (const event of events) {
+    for (const platform of event.game.platforms) {
+      platforms.set(platform.platform.name, (platforms.get(platform.platform.name) ?? 0) + 1);
+    }
+    if (event.reason) {
+      const key = normaliseCause(event.reason);
+      causes.set(key, (causes.get(key) ?? 0) + 1);
+    }
+    if (event.game.firstReleaseAt) {
+      const year = event.game.firstReleaseAt.getUTCFullYear();
+      const decade = `${Math.floor(year / 10) * 10}s`;
+      decades.set(decade, (decades.get(decade) ?? 0) + 1);
+    }
+    for (const genre of event.game.genres) {
+      genres.set(genre.genre.name, (genres.get(genre.genre.name) ?? 0) + 1);
+    }
+  }
+
+  function sortMap(map: Map<string, number>) {
+    return [...map.entries()].sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
+  }
+
+  return {
+    Platform: sortMap(platforms),
+    Cause: sortMap(causes),
+    Decade: sortMap(decades),
+    Genre: sortMap(genres),
   };
 }

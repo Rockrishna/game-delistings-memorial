@@ -7,12 +7,10 @@ interface CardProps {
 }
 
 export default function Card({ children, className = "", hover = true }: CardProps) {
-  const hoverClass = hover
-    ? "hover:border-[#d0bcff]/50 hover:bg-[#2c2832] transition-colors"
-    : "";
+  const hoverClass = hover ? "transition-colors hover:bg-[color:var(--paper-2)]" : "";
   return (
     <div
-      className={`border border-[#494454] bg-[#211e27] p-6 ${hoverClass} ${className}`}
+      className={`border border-[color:var(--rule)] bg-[color:var(--paper)] p-6 ${hoverClass} ${className}`}
     >
       {children}
     </div>

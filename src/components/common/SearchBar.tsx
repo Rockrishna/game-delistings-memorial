@@ -1,48 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface SearchBarProps {
   onSearch?: (query: string) => void;
   placeholder?: string;
   className?: string;
+  initialValue?: string;
+  debounceMs?: number;
 }
 
 export default function SearchBar({
   onSearch,
-  placeholder = "Search games...",
+  placeholder = "Search the paper…",
   className = "",
+  initialValue = "",
+  debounceMs = 250,
 }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialValue);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    onSearch?.(value);
-  };
+  useEffect(() => {
+    if (!onSearch) return;
+    const handle = setTimeout(() => onSearch(query), debounceMs);
+    return () => clearTimeout(handle);
+  }, [query, debounceMs, onSearch]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div
+      className={`flex items-center gap-3 border border-[color:var(--ink)] bg-[color:var(--paper-2)] px-4 py-3 ${className}`}
+    >
+      <span className="font-display text-2xl leading-none text-[color:var(--ink-2)]" aria-hidden>
+        ⌕
+      </span>
       <input
         type="text"
         value={query}
-        onChange={handleChange}
+        onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder}
-        className="w-full border border-[#494454] bg-[#2c2832] px-11 py-3 font-mono text-sm text-[#e7e0ed] placeholder:text-[#958ea0] focus:border-[#d0bcff] focus:outline-none transition-colors"
+        className="w-full bg-transparent font-serif text-base italic text-[color:var(--ink)] placeholder:text-[color:var(--ink-3)] focus:outline-none"
       />
-      <svg
-        className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#958ea0]"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
-      </svg>
     </div>
   );
 }
