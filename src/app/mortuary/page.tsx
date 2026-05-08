@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Card from "@/components/common/Card";
-import Badge from "@/components/common/Badge";
 import SearchBar from "@/components/common/SearchBar";
 
 type MortuaryGame = {
@@ -18,38 +16,52 @@ type MortuaryGame = {
   coverUrl?: string;
 };
 
+type FacetEntry = { name: string; count: number };
+type Facets = {
+  Platform: FacetEntry[];
+  Cause: FacetEntry[];
+  Decade: FacetEntry[];
+  Genre: FacetEntry[];
+};
+
+function normaliseCause(reason: string | undefined): string {
+  if (!reason) return "Undisclosed";
+  const lower = reason.toLowerCase();
+  if (lower.includes("license") || lower.includes("licence")) return "License Expiry";
+  if (lower.includes("server") || lower.includes("shutdown")) return "Service Shutdown";
+  if (lower.includes("publish")) return "Publisher Decision";
+  if (lower.includes("storefront") || lower.includes("store closure")) return "Storefront Closure";
+  if (lower.includes("replace") || lower.includes("definitive") || lower.includes("re-release"))
+    return "Replaced";
+  if (lower.includes("agreement") || lower.includes("contract")) return "Agreement Lapse";
+  return reason.length > 28 ? `${reason.slice(0, 25).trim()}…` : reason;
+}
+
 export default function MortuaryPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string>("");
-  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"delisted-desc" | "delisted-asc" | "title-asc">(
-    "delisted-desc"
-  );
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
+  const [selectedDecade, setSelectedDecade] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState(12);
   const [games, setGames] = useState<MortuaryGame[]>([]);
+  const [facets, setFacets] = useState<Facets | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const query = useMemo(() => {
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) params.set("q", searchQuery.trim());
-    return params.toString();
-  }, [searchQuery]);
-
-  useEffect(() => {
-    setVisibleCount(12);
-  }, [query]);
 
   useEffect(() => {
     async function run() {
       try {
         setLoading(true);
-        const response = await fetch(`/api/mortuary?${query}`, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error("Failed to load mortuary data.");
-        }
-        const payload = (await response.json()) as MortuaryGame[];
-        setGames(payload);
+        const params = new URLSearchParams();
+        if (searchQuery.trim()) params.set("q", searchQuery.trim());
+        const [eventsResponse, facetsResponse] = await Promise.all([
+          fetch(`/api/mortuary?${params.toString()}`, { cache: "no-store" }),
+          fetch("/api/mortuary/facets", { cache: "no-store" }),
+        ]);
+        if (!eventsResponse.ok) throw new Error("Failed to load obituaries.");
+        if (!facetsResponse.ok) throw new Error("Failed to load facets.");
+        setGames((await eventsResponse.json()) as MortuaryGame[]);
+        setFacets((await facetsResponse.json()) as Facets);
       } catch (err) {
         setError((err as Error).message);
       } finally {
@@ -57,255 +69,261 @@ export default function MortuaryPage() {
       }
     }
     run();
-  }, [query]);
-
-  const years = useMemo(() => {
-    const values = new Set<string>();
-    games.forEach((game) => {
-      const year = new Date(game.delistDate).getUTCFullYear();
-      if (!Number.isNaN(year)) values.add(String(year));
-    });
-    return [...values].sort((a, b) => Number(b) - Number(a));
-  }, [games]);
-
-  const platforms = useMemo(() => {
-    const values = new Set<string>();
-    games.forEach((game) => game.platforms.forEach((platform) => values.add(platform)));
-    return [...values].sort((a, b) => a.localeCompare(b));
-  }, [games]);
+  }, [searchQuery]);
 
   const filteredGames = useMemo(() => {
-    const filtered = games.filter((game) => {
-      const year = String(new Date(game.delistDate).getUTCFullYear());
-      const matchesYear = !selectedYear || year === selectedYear;
-      const matchesPlatform =
-        !selectedPlatform ||
-        game.platforms.some(
-          (platform) => platform.toLowerCase() === selectedPlatform.toLowerCase()
-        );
-      return matchesYear && matchesPlatform;
+    return games.filter((game) => {
+      if (selectedPlatforms.length) {
+        const matches = game.platforms.some((platform) => selectedPlatforms.includes(platform));
+        if (!matches) return false;
+      }
+      if (selectedCauses.length) {
+        const cause = normaliseCause(game.reason);
+        if (!selectedCauses.includes(cause)) return false;
+      }
+      if (selectedDecade && game.releaseYear) {
+        const decade = `${Math.floor(game.releaseYear / 10) * 10}s`;
+        if (decade !== selectedDecade) return false;
+      }
+      return true;
     });
+  }, [games, selectedPlatforms, selectedCauses, selectedDecade]);
 
-    if (sortBy === "title-asc") {
-      return [...filtered].sort((a, b) => a.title.localeCompare(b.title));
-    }
-    if (sortBy === "delisted-asc") {
-      return [...filtered].sort(
-        (a, b) => new Date(a.delistDate).getTime() - new Date(b.delistDate).getTime()
-      );
-    }
-    return [...filtered].sort(
-      (a, b) => new Date(b.delistDate).getTime() - new Date(a.delistDate).getTime()
-    );
-  }, [games, selectedYear, selectedPlatform, sortBy]);
-
-  const visibleGames = useMemo(
-    () => filteredGames.slice(0, visibleCount),
-    [filteredGames, visibleCount]
-  );
-
+  const visibleGames = filteredGames.slice(0, visibleCount);
   const hasMore = filteredGames.length > visibleGames.length;
-  const delistedThisYear = useMemo(() => {
-    const year = new Date().getUTCFullYear();
-    return games.filter((game) => new Date(game.delistDate).getUTCFullYear() === year).length;
-  }, [games]);
 
-  const dominantPlatform = useMemo(() => {
-    const counts = new Map<string, number>();
-    games.forEach((game) => {
-      game.platforms.forEach((platform) => {
-        counts.set(platform, (counts.get(platform) ?? 0) + 1);
-      });
-    });
-    const [platform] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
-    return platform ?? "Unknown";
-  }, [games]);
+  function togglePlatform(name: string) {
+    setSelectedPlatforms((current) =>
+      current.includes(name) ? current.filter((p) => p !== name) : [...current, name]
+    );
+  }
+
+  function toggleCause(name: string) {
+    setSelectedCauses((current) =>
+      current.includes(name) ? current.filter((c) => c !== name) : [...current, name]
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-[#15121b] pb-12">
-      <section className="mx-auto max-w-[1280px] space-y-8 px-6 py-10">
-        <header className="border border-[#494454] bg-[#1d1a23] p-8">
-          <p className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-[#d0bcff]">
-            Archive Ledger
+    <main className="mx-auto max-w-[1280px] bg-[color:var(--paper)] pb-16">
+      <section className="border-x border-b border-[color:var(--ink)]">
+        <header className="border-b-[3px] border-double border-[color:var(--ink)] px-6 py-8 text-center">
+          <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
+            Section C · Collected Obituaries
           </p>
-          <h1 className="mt-3 text-4xl font-bold text-[#e7e0ed]">The Mortuary</h1>
-          <p className="mt-2 max-w-3xl text-[#cbc3d7]">
-            Permanent archive of digitally delisted titles with platform metadata, dates,
-            and preservation context.
+          <h1 className="mt-2 font-display text-5xl font-black sm:text-6xl">In Memoriam</h1>
+          <p className="mx-auto mt-3 max-w-2xl font-serif text-base italic text-[color:var(--ink-2)]">
+            Permanent records of digital titles withdrawn from sale. They live on only in player
+            libraries.
           </p>
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="border border-[#494454] bg-[#211e27] p-4">
-              <p className="text-xs uppercase tracking-[0.1em] text-[#958ea0]">Total archived</p>
-              <p className="mt-1 font-mono text-3xl font-bold text-[#d0bcff]">{games.length}</p>
-            </div>
-            <div className="border border-[#494454] bg-[#211e27] p-4">
-              <p className="text-xs uppercase tracking-[0.1em] text-[#958ea0]">Delisted this year</p>
-              <p className="mt-1 font-mono text-3xl font-bold text-[#89ceff]">{delistedThisYear}</p>
-            </div>
-            <div className="border border-[#494454] bg-[#211e27] p-4">
-              <p className="text-xs uppercase tracking-[0.1em] text-[#958ea0]">Most affected platform</p>
-              <p className="mt-1 font-mono text-xl font-bold text-[#ffb869]">{dominantPlatform}</p>
-            </div>
-          </div>
         </header>
 
-        <section className="space-y-4 border-b border-[#494454] pb-8">
-          <SearchBar
-            placeholder="Search title or genre..."
-            onSearch={setSearchQuery}
-            className="max-w-2xl"
-          />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
-                Year
-              </span>
-              <select
-                value={selectedYear}
-                onChange={(event) => setSelectedYear(event.target.value)}
-                className="w-full border border-[#494454] bg-[#2c2832] px-3 py-2 font-mono text-sm text-[#e7e0ed] focus:border-[#d0bcff] focus:outline-none"
-              >
-                <option value="">All years</option>
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
+        <div className="grid gap-0 lg:grid-cols-[260px_1fr]">
+          {/* Faceted left rail */}
+          <aside className="border-b border-[color:var(--rule)] bg-[color:var(--paper-2)] p-5 lg:border-b-0 lg:border-r">
+            <SearchBar
+              placeholder="Search the index…"
+              onSearch={setSearchQuery}
+              initialValue={searchQuery}
+              className="mb-5"
+            />
+
+            <FacetSection title="By Platform">
+              <FacetCheckboxes
+                options={facets?.Platform ?? []}
+                selected={selectedPlatforms}
+                onToggle={togglePlatform}
+              />
+            </FacetSection>
+
+            <FacetSection title="By Cause">
+              <FacetCheckboxes
+                options={facets?.Cause ?? []}
+                selected={selectedCauses}
+                onToggle={toggleCause}
+              />
+            </FacetSection>
+
+            <FacetSection title="By Decade">
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDecade("")}
+                  className={`flex w-full items-center justify-between border border-transparent px-2 py-1 text-left font-serif text-sm hover:border-[color:var(--rule-soft)] ${
+                    selectedDecade === "" ? "bg-[color:var(--paper-3)] font-semibold" : ""
+                  }`}
+                >
+                  <span>All decades</span>
+                </button>
+                {(facets?.Decade ?? []).map((entry) => (
+                  <button
+                    key={entry.name}
+                    type="button"
+                    onClick={() => setSelectedDecade(entry.name)}
+                    className={`flex w-full items-center justify-between border border-transparent px-2 py-1 text-left font-serif text-sm hover:border-[color:var(--rule-soft)] ${
+                      selectedDecade === entry.name ? "bg-[color:var(--paper-3)] font-semibold" : ""
+                    }`}
+                  >
+                    <span>{entry.name}</span>
+                    <span className="font-typewriter text-[10px] text-[color:var(--ink-3)]">
+                      {entry.count}
+                    </span>
+                  </button>
                 ))}
-              </select>
-            </label>
+              </div>
+            </FacetSection>
 
-            <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
-                Platform
-              </span>
-              <select
-                value={selectedPlatform}
-                onChange={(event) => setSelectedPlatform(event.target.value)}
-                className="w-full border border-[#494454] bg-[#2c2832] px-3 py-2 font-mono text-sm text-[#e7e0ed] focus:border-[#d0bcff] focus:outline-none"
+            {(selectedPlatforms.length || selectedCauses.length || selectedDecade) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPlatforms([]);
+                  setSelectedCauses([]);
+                  setSelectedDecade("");
+                }}
+                className="mt-4 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--accent)] underline-offset-2 hover:underline"
               >
-                <option value="">All platforms</option>
-                {platforms.map((platform) => (
-                  <option key={platform} value={platform}>
-                    {platform}
-                  </option>
-                ))}
-              </select>
-            </label>
+                Clear all filters
+              </button>
+            ) : null}
+          </aside>
 
-            <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
-                Sort
-              </span>
-              <select
-                value={sortBy}
-                onChange={(event) =>
-                  setSortBy(event.target.value as "delisted-desc" | "delisted-asc" | "title-asc")
-                }
-                className="w-full border border-[#494454] bg-[#2c2832] px-3 py-2 font-mono text-sm text-[#e7e0ed] focus:border-[#d0bcff] focus:outline-none"
-              >
-                <option value="delisted-desc">Newest delisted</option>
-                <option value="delisted-asc">Oldest delisted</option>
-                <option value="title-asc">Alphabetical</option>
-              </select>
-            </label>
-          </div>
-        </section>
+          <div className="px-6 py-8">
+            {loading ? (
+              <p className="text-center font-serif italic text-[color:var(--ink-2)]">
+                Casting the type…
+              </p>
+            ) : error ? (
+              <p className="text-center font-serif italic text-[color:var(--accent)]">
+                The archive is offline. {error}
+              </p>
+            ) : filteredGames.length === 0 ? (
+              <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
+                No obituaries match these filters. Adjust the rail to widen the field.
+              </p>
+            ) : (
+              <>
+                <p className="mb-6 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
+                  {filteredGames.length} record{filteredGames.length === 1 ? "" : "s"} ·
+                  showing {visibleGames.length}
+                </p>
 
-        <section>
-          {loading ? (
-            <div className="text-[#cbc3d7]">Loading archive...</div>
-          ) : error ? (
-            <div className="text-red-300">Could not load archive. {error}</div>
-          ) : visibleGames.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visibleGames.map((game) => (
-                  <Card key={game.id} className="p-4">
-                    <div className="space-y-4">
-                      <div className="aspect-[16/10] overflow-hidden border border-[#494454] bg-[#2c2832]">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                  {visibleGames.map((game) => (
+                    <Link
+                      href={`/games/${game.id}`}
+                      key={game.id}
+                      className="group block text-center"
+                    >
+                      <div className="broadsheet-cover-frame aspect-[3/4]">
                         {game.coverUrl ? (
-                          <img
-                            src={game.coverUrl}
-                            alt={game.title}
-                            className="h-full w-full object-cover grayscale transition-all duration-300 hover:grayscale-0"
-                          />
+                          <img src={game.coverUrl} alt={game.title} loading="lazy" />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs text-[#958ea0]">
-                            No Artwork
+                          <div className="flex h-full w-full items-center justify-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
+                            Portrait
                           </div>
                         )}
                       </div>
-
-                      <div>
-                        <h3 className="text-lg font-semibold text-[#e7e0ed]">{game.title}</h3>
-                        <p className="mt-1 text-sm text-[#958ea0]">
-                          Released {game.releaseYear ?? "Unknown"}
+                      <div className="border-double-ink mt-3 px-1 py-2">
+                        <h3 className="font-display text-xl font-bold leading-tight text-[color:var(--ink)] group-hover:text-[color:var(--accent)]">
+                          {game.title}
+                        </h3>
+                        <p className="mt-1 font-serif text-xs italic text-[color:var(--ink-2)]">
+                          {game.releaseYear ?? "—"} —{" "}
+                          {new Date(game.delistDate).getUTCFullYear()}
                         </p>
                       </div>
-
-                      <div className="border border-[#494454] bg-[#1d1a23] px-3 py-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
-                          Delisted
-                        </p>
-                        <p className="mt-1 font-mono text-sm text-[#e7e0ed]">
-                          {new Date(game.delistDate).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {game.platforms.map((platform, index) => (
-                          <Badge
-                            key={`${game.id}-${platform}-${index}`}
-                            label={platform}
-                            variant={game.platformBadges[index] ?? "default"}
-                          />
-                        ))}
-                      </div>
-
+                      <p className="mt-2 font-typewriter text-[9px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                        {game.platforms.join(" · ")}
+                      </p>
                       {game.reason ? (
-                        <p className="line-clamp-2 text-sm text-[#cbc3d7]">{game.reason}</p>
+                        <p className="mt-2 line-clamp-3 font-serif text-sm italic text-[color:var(--ink-2)]">
+                          “{game.reason}”
+                        </p>
                       ) : null}
-
-                      <div className="flex items-center justify-between border-t border-[#494454] pt-3">
-                        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#f87171]">
-                          Archived
-                        </span>
-                        <Link
-                          href={`/games/${game.id}`}
-                          className="text-xs font-semibold uppercase tracking-[0.08em] text-[#d0bcff] hover:underline"
-                        >
-                          View Details
-                        </Link>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-
-              {hasMore ? (
-                <div className="mt-8">
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount((current) => current + 12)}
-                    className="border border-[#494454] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#cbc3d7] transition-colors hover:border-[#d0bcff] hover:text-[#d0bcff]"
-                  >
-                    Load More Archived Games
-                  </button>
+                    </Link>
+                  ))}
                 </div>
-              ) : null}
-            </>
-          ) : (
-            <Card hover={false} className="text-center">
-              <h3 className="text-2xl font-semibold text-[#e7e0ed]">No results found</h3>
-              <p className="mt-2 text-[#cbc3d7]">Try adjusting your filters.</p>
-            </Card>
-          )}
-        </section>
+
+                {hasMore ? (
+                  <div className="mt-10 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCount((current) => current + 12)}
+                      className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-5 py-2 font-typewriter text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink)] transition-colors hover:bg-[color:var(--ink)] hover:text-[color:var(--paper)]"
+                    >
+                      Load more obituaries
+                    </button>
+                  </div>
+                ) : null}
+
+                <p className="mt-12 text-center font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
+                  · Continued in subsequent volumes ·
+                </p>
+              </>
+            )}
+          </div>
+        </div>
       </section>
     </main>
+  );
+}
+
+function FacetSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-5">
+      <p className="border-b border-[color:var(--ink)] pb-1 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-2)]">
+        {title}
+      </p>
+      <div className="mt-2 space-y-1">{children}</div>
+    </section>
+  );
+}
+
+function FacetCheckboxes({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: FacetEntry[];
+  selected: string[];
+  onToggle: (name: string) => void;
+}) {
+  if (!options.length) {
+    return (
+      <p className="font-serif text-xs italic text-[color:var(--ink-3)]">
+        Awaiting first records.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {options.map((entry) => {
+        const active = selected.includes(entry.name);
+        return (
+          <button
+            key={entry.name}
+            type="button"
+            onClick={() => onToggle(entry.name)}
+            className={`flex w-full items-center justify-between border border-transparent px-2 py-1 text-left font-serif text-sm hover:border-[color:var(--rule-soft)] ${
+              active ? "bg-[color:var(--paper-3)] font-semibold" : ""
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className={`inline-block h-3 w-3 border ${
+                  active
+                    ? "border-[color:var(--ink)] bg-[color:var(--ink)]"
+                    : "border-[color:var(--rule)]"
+                }`}
+              />
+              {entry.name}
+            </span>
+            <span className="font-typewriter text-[10px] text-[color:var(--ink-3)]">{entry.count}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

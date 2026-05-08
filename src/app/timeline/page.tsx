@@ -4,27 +4,30 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SearchBar from "@/components/common/SearchBar";
 import Badge from "@/components/common/Badge";
-import Card from "@/components/common/Card";
-import type { StatusType } from "@/components/common/Badge";
+
+type TimelineGame = {
+  id: string;
+  slug: string;
+  title: string;
+  platforms: string[];
+  platformBadges: Array<"steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default">;
+  status: "recent" | "upcoming" | "delisted";
+  delistDate: string;
+  reason: string | null;
+  releaseYear: number | null;
+  daysFromNow: number;
+  coverUrl?: string;
+};
 
 type TimelinePeriod = {
   id: string;
   month: string;
   year: number;
-  games: Array<{
-    id: string;
-    slug: string;
-    title: string;
-    platforms: string[];
-    platformBadges: Array<"steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default">;
-    status: "recent" | "upcoming" | "delisted";
-    delistDate: string;
-    coverUrl?: string;
-  }>;
+  games: TimelineGame[];
 };
 
 const PLATFORMS = [
-  { label: "All", value: "" },
+  { label: "All platforms", value: "" },
   { label: "Steam", value: "steam" },
   { label: "PlayStation", value: "playstation" },
   { label: "Xbox", value: "xbox" },
@@ -33,16 +36,31 @@ const PLATFORMS = [
 ];
 
 const SORT_OPTIONS = [
-  { label: "Date (Newest)", value: "newest" },
-  { label: "Date (Oldest)", value: "oldest" },
+  { label: "Newest first", value: "newest" },
+  { label: "Oldest first", value: "oldest" },
   { label: "Alphabetical", value: "alphabetical" },
 ];
+
+function formatDateLong(value: string) {
+  return new Date(value).toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function withdrawalLabel(daysFromNow: number) {
+  if (daysFromNow > 0) return `T−${daysFromNow} days`;
+  if (daysFromNow === 0) return "Today";
+  return `${Math.abs(daysFromNow)} days ago`;
+}
 
 export default function TimelinePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const [statusFilters, setStatusFilters] = useState<StatusType[]>([
+  const [statusFilters, setStatusFilters] = useState<Array<"recent" | "upcoming" | "delisted">>([
     "recent",
     "upcoming",
     "delisted",
@@ -69,9 +87,7 @@ export default function TimelinePage() {
       try {
         setLoading(true);
         const response = await fetch(`/api/timeline?${query}`, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error("Failed to load timeline.");
-        }
+        if (!response.ok) throw new Error("Failed to load timeline.");
         const payload = (await response.json()) as TimelinePeriod[];
         setTimeline(payload);
       } catch (err) {
@@ -93,19 +109,11 @@ export default function TimelinePage() {
       .filter((period) => period.games.length > 0);
   }, [timeline, statusFilters]);
 
-  const shownTimeline = useMemo(
-    () => filteredTimeline.slice(0, visibleGroups),
-    [filteredTimeline, visibleGroups]
-  );
-
-  const totalShownGames = useMemo(
-    () => shownTimeline.reduce((sum, period) => sum + period.games.length, 0),
-    [shownTimeline]
-  );
-
+  const shownTimeline = filteredTimeline.slice(0, visibleGroups);
   const hasMore = filteredTimeline.length > shownTimeline.length;
+  const totalDispatches = filteredTimeline.reduce((sum, period) => sum + period.games.length, 0);
 
-  function toggleStatus(status: StatusType) {
+  function toggleStatus(status: "recent" | "upcoming" | "delisted") {
     setStatusFilters((current) => {
       if (current.includes(status)) {
         if (current.length === 1) return current;
@@ -116,32 +124,37 @@ export default function TimelinePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#15121b] pb-12">
-      <section className="mx-auto max-w-[1280px] px-6 py-10">
-        <header className="mb-8 border-l-4 border-[#d0bcff] pl-5">
-          <h1 className="text-4xl font-bold text-[#e7e0ed]">Chronological Feed</h1>
-          <p className="mt-2 max-w-3xl text-[#cbc3d7]">
-            Track delisting events by month, platform, and status. Data updates from your
-            curated archive and IGDB-enriched records.
+    <main className="mx-auto max-w-[1280px] bg-[color:var(--paper)] pb-16">
+      <section className="border-x border-b border-[color:var(--ink)]">
+        <header className="border-b-[3px] border-double border-[color:var(--ink)] px-6 py-6 text-center">
+          <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
+            Section B · Daily Docket
+          </p>
+          <h1 className="mt-2 font-display text-4xl font-black sm:text-5xl">
+            This Week's Withdrawals
+          </h1>
+          <p className="mx-auto mt-2 max-w-2xl font-serif text-base italic text-[color:var(--ink-2)]">
+            Dispatches in chronological order — every recently withdrawn title and every announced
+            removal.
           </p>
         </header>
 
-        <section className="mb-8 space-y-4 border-b border-[#494454] pb-8">
-          <SearchBar
-            placeholder="Search games or metadata..."
-            onSearch={setSearchQuery}
-            className="max-w-2xl"
-          />
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
+        {/* Filter strip */}
+        <div className="border-b border-[color:var(--rule)] bg-[color:var(--paper-2)] px-6 py-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto] md:items-end">
+            <SearchBar
+              placeholder="Search games or causes…"
+              onSearch={setSearchQuery}
+              initialValue={searchQuery}
+            />
+            <label className="flex flex-col gap-1">
+              <span className="font-typewriter text-[9px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
                 Platform
               </span>
               <select
                 value={selectedPlatform}
                 onChange={(event) => setSelectedPlatform(event.target.value)}
-                className="w-full border border-[#494454] bg-[#2c2832] px-3 py-2 font-mono text-sm text-[#e7e0ed] focus:border-[#d0bcff] focus:outline-none"
+                className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-3 py-[10px] font-serif text-sm text-[color:var(--ink)] focus:outline-none"
               >
                 {PLATFORMS.map((platform) => (
                   <option key={platform.value || "all"} value={platform.value}>
@@ -150,26 +163,24 @@ export default function TimelinePage() {
                 ))}
               </select>
             </label>
-
-            <label className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
+            <label className="flex flex-col gap-1">
+              <span className="font-typewriter text-[9px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
                 Sort
               </span>
               <select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
-                className="w-full border border-[#494454] bg-[#2c2832] px-3 py-2 font-mono text-sm text-[#e7e0ed] focus:border-[#d0bcff] focus:outline-none"
+                className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-3 py-[10px] font-serif text-sm text-[color:var(--ink)] focus:outline-none"
               >
-                {SORT_OPTIONS.map((sortOption) => (
-                  <option key={sortOption.value} value={sortOption.value}>
-                    {sortOption.label}
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
             </label>
-
-            <div className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#958ea0]">
+            <div className="flex flex-col gap-1">
+              <span className="font-typewriter text-[9px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
                 Status
               </span>
               <div className="flex flex-wrap gap-2">
@@ -180,10 +191,10 @@ export default function TimelinePage() {
                       key={status}
                       type="button"
                       onClick={() => toggleStatus(status)}
-                      className={`border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
+                      className={`border px-3 py-[6px] font-typewriter text-[10px] uppercase tracking-[0.16em] transition-colors ${
                         active
-                          ? "border-[#d0bcff] bg-[#d0bcff]/10 text-[#d0bcff]"
-                          : "border-[#494454] text-[#cbc3d7] hover:border-[#d0bcff] hover:text-[#d0bcff]"
+                          ? "border-[color:var(--ink)] bg-[color:var(--ink)] text-[color:var(--paper)]"
+                          : "border-[color:var(--rule-soft)] text-[color:var(--ink-2)] hover:border-[color:var(--ink)]"
                       }`}
                     >
                       {status}
@@ -193,149 +204,117 @@ export default function TimelinePage() {
               </div>
             </div>
           </div>
-        </section>
+          <p className="mt-3 font-serif text-xs italic text-[color:var(--ink-3)]">
+            Showing {totalDispatches} dispatches across {filteredTimeline.length} dated period
+            {filteredTimeline.length === 1 ? "" : "s"}.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[2fr_320px]">
-          <section>
-            {loading ? (
-              <div className="text-[#cbc3d7]">Loading timeline...</div>
-            ) : error ? (
-              <div className="text-red-300">Could not load timeline. {error}</div>
-            ) : shownTimeline.length > 0 ? (
-              <div className="relative ml-4 border-l border-[#494454] pl-8 sm:ml-6 sm:pl-10">
-                <div className="space-y-10">
-                  {shownTimeline.map((period) => (
-                    <article key={period.id} className="relative">
-                      <div className="absolute -left-[50px] top-1 hidden h-7 w-7 items-center justify-center rounded-full border border-[#494454] bg-[#211e27] sm:flex">
-                        <span className="h-2 w-2 rounded-full bg-[#d0bcff]" />
-                      </div>
-                      <div className="mb-4">
-                        <p className="font-mono text-xs uppercase tracking-[0.1em] text-[#958ea0]">
-                          Period
+        <div className="px-6 py-8">
+          {loading ? (
+            <p className="text-center font-serif italic text-[color:var(--ink-2)]">
+              Setting today's dispatches…
+            </p>
+          ) : error ? (
+            <p className="text-center font-serif italic text-[color:var(--accent)]">
+              The wire is down. {error}
+            </p>
+          ) : shownTimeline.length === 0 ? (
+            <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
+              No dispatches match these filters. Try widening the platform or status.
+            </p>
+          ) : (
+            <div className="space-y-12">
+              {shownTimeline.map((period) => {
+                const headDate = period.games[0]?.delistDate;
+                return (
+                  <article key={period.id}>
+                    <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b-[3px] border-double border-[color:var(--ink)] pb-2">
+                      <h2 className="font-display text-2xl font-bold sm:text-3xl">
+                        {period.month} {period.year}
+                      </h2>
+                      {headDate ? (
+                        <p className="font-serif text-sm italic text-[color:var(--ink-3)]">
+                          · earliest dispatch {formatDateLong(headDate).split(",").slice(1).join(",").trim()}
                         </p>
-                        <h2 className="text-2xl font-semibold text-[#e7e0ed]">
-                          {period.month} {period.year}
-                        </h2>
-                      </div>
+                      ) : null}
+                    </header>
 
-                      <div className="space-y-3">
-                        {period.games.map((game) => (
-                          <Card key={`${period.id}-${game.id}-${game.delistDate}`} className="p-4">
-                            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                              <div className="h-24 w-full shrink-0 overflow-hidden border border-[#494454] bg-[#2c2832] md:w-40">
-                                {game.coverUrl ? (
-                                  <img
-                                    src={game.coverUrl}
-                                    alt={game.title}
-                                    className="h-full w-full object-cover grayscale transition-all duration-300 hover:grayscale-0"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-xs text-[#958ea0]">
-                                    No Artwork
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <h3 className="text-lg font-semibold text-[#e7e0ed]">{game.title}</h3>
-                                  <Badge label={game.status} variant={game.status} />
+                    <div className="mt-5 grid gap-x-8 gap-y-6 md:grid-cols-2">
+                      {period.games.map((game, index) => (
+                        <div
+                          key={`${period.id}-${game.id}-${game.delistDate}`}
+                          className={
+                            index % 2 === 0
+                              ? "md:border-r md:border-[color:var(--rule)] md:pr-8"
+                              : ""
+                          }
+                        >
+                          <div className="grid grid-cols-[110px_1fr] gap-4">
+                            <div className="broadsheet-cover-frame aspect-[3/4]">
+                              {game.coverUrl ? (
+                                <img src={game.coverUrl} alt={game.title} loading="lazy" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center font-typewriter text-[9px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                                  Cover
                                 </div>
-                                <p className="mt-1 font-mono text-xs uppercase tracking-[0.08em] text-[#958ea0]">
-                                  {new Date(game.delistDate).toLocaleString("en-US", {
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-typewriter text-[9px] uppercase tracking-[0.18em] text-[color:var(--accent)]">
+                                Withdrawal · {withdrawalLabel(game.daysFromNow)}
+                              </p>
+                              <Link
+                                href={`/games/${game.slug ?? game.id}`}
+                                className="mt-1 block font-display text-xl font-bold leading-tight text-[color:var(--ink)] hover:text-[color:var(--accent)] sm:text-2xl"
+                              >
+                                {game.title}
+                              </Link>
+                              <p className="mt-1 font-serif text-sm italic text-[color:var(--ink-2)]">
+                                {game.releaseYear ? `Released ${game.releaseYear} · ` : ""}
+                                {game.platforms.join(", ")}
+                              </p>
+                              {game.reason ? (
+                                <p className="mt-2 font-serif text-sm text-[color:var(--ink-2)]">{game.reason}</p>
+                              ) : null}
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <Badge label={game.status} variant={game.status} />
+                                <span className="font-typewriter text-[9px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                                  {new Date(game.delistDate).toLocaleDateString("en-US", {
                                     year: "numeric",
                                     month: "short",
                                     day: "numeric",
                                   })}
-                                </p>
-                                <div className="mt-3 flex flex-wrap gap-1.5">
-                                  {game.platforms.map((platform, index) => (
-                                    <Badge
-                                      key={`${period.id}-${game.id}-${platform}-${index}`}
-                                      label={platform}
-                                      variant={game.platformBadges[index] ?? "default"}
-                                    />
-                                  ))}
-                                </div>
+                                </span>
                               </div>
-
                               <Link
                                 href={`/games/${game.slug ?? game.id}`}
-                                className="self-start border border-[#494454] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#cbc3d7] transition-colors hover:border-[#d0bcff] hover:text-[#d0bcff]"
+                                className="mt-3 inline-block font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)] underline-offset-2 hover:underline"
                               >
-                                View Details
+                                Read full entry →
                               </Link>
                             </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
 
-                {hasMore ? (
-                  <div className="mt-8">
-                    <button
-                      type="button"
-                      onClick={() => setVisibleGroups((current) => current + 4)}
-                      className="border border-[#494454] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#cbc3d7] transition-colors hover:border-[#d0bcff] hover:text-[#d0bcff]"
-                    >
-                      Load More Periods
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <Card hover={false} className="text-center">
-                <h3 className="text-xl font-semibold text-[#e7e0ed]">No delistings found</h3>
-                <p className="mt-2 text-[#cbc3d7]">
-                  Try broadening platform filters or re-enabling additional statuses.
-                </p>
-              </Card>
-            )}
-          </section>
-
-          <aside className="space-y-4">
-            <Card hover={false}>
-              <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#d0bcff]">
-                Feed Stats
-              </h2>
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex items-center justify-between border-b border-[#494454] pb-2">
-                  <dt className="text-[#958ea0]">Visible periods</dt>
-                  <dd className="font-mono text-[#e7e0ed]">{shownTimeline.length}</dd>
+              {hasMore ? (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleGroups((current) => current + 4)}
+                    className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-5 py-2 font-typewriter text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink)] transition-colors hover:bg-[color:var(--ink)] hover:text-[color:var(--paper)]"
+                  >
+                    Load more periods
+                  </button>
                 </div>
-                <div className="flex items-center justify-between border-b border-[#494454] pb-2">
-                  <dt className="text-[#958ea0]">Visible events</dt>
-                  <dd className="font-mono text-[#e7e0ed]">{totalShownGames}</dd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <dt className="text-[#958ea0]">Filtered statuses</dt>
-                  <dd className="font-mono text-[#e7e0ed]">{statusFilters.length}</dd>
-                </div>
-              </dl>
-            </Card>
-
-            <Card hover={false}>
-              <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-[#d0bcff]">
-                Navigation
-              </h2>
-              <div className="mt-4 space-y-2">
-                <Link
-                  href="/"
-                  className="block border border-[#494454] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#cbc3d7] transition-colors hover:border-[#d0bcff] hover:text-[#d0bcff]"
-                >
-                  Back to Home
-                </Link>
-                <Link
-                  href="/mortuary"
-                  className="block border border-[#494454] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#cbc3d7] transition-colors hover:border-[#d0bcff] hover:text-[#d0bcff]"
-                >
-                  Open Mortuary
-                </Link>
-              </div>
-            </Card>
-          </aside>
+              ) : null}
+            </div>
+          )}
         </div>
       </section>
     </main>
