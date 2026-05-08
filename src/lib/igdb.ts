@@ -12,10 +12,19 @@ type IGDBGame = {
   summary?: string;
   first_release_date?: number;
   rating?: number;
+  status?: number;
+  updated_at?: number;
   cover?: { image_id: string };
   artworks?: Array<{ image_id: string }>;
   platforms?: Array<{ id: number; name: string; abbreviation?: string; slug?: string }>;
   genres?: Array<{ id: number; name: string; slug?: string }>;
+};
+
+type IGDBGameStatus = {
+  id: number;
+  name?: string;
+  description?: string;
+  checksum?: string;
 };
 
 let tokenCache: { value: string; expiresAt: number } | null = null;
@@ -236,6 +245,74 @@ export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDB
         .limit(sortedIds.length)
   );
   return rows.map(normalizeRow);
+}
+
+/**
+ * Fetch the IGDB game_status lookup table. Tiny (single-digit rows) and
+ * rarely changes — caches for 30 days.
+ */
+export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
+  return buildAndQuery<IGDBGameStatus>(
+    "game_statuses",
+    "game_statuses:all",
+    THIRTY_DAYS_MS,
+    (c) => c.fields(["name", "description", "checksum"]).limit(50)
+  );
+}
+
+/**
+ * Find the IGDB game_status IDs whose name or description identifies the
+ * record as "delisted" or "offline" — the two states that mean a game has
+ * been pulled from sale. Returns the integer IDs to plug into a games-where
+ * filter.
+ */
+export async function getDelistedStatusIds(): Promise<{
+  ids: number[];
+  matched: Array<{ id: number; label: string }>;
+  all: IGDBGameStatus[];
+}> {
+  const all = await listGameStatuses();
+  const matched: Array<{ id: number; label: string }> = [];
+  for (const status of all) {
+    const label = (status.name || status.description || "").toLowerCase();
+    if (/delist|offline|removed|pulled|withdrawn/.test(label)) {
+      matched.push({ id: status.id, label: status.name || status.description || `#${status.id}` });
+    }
+  }
+  return { ids: matched.map((row) => row.id), matched, all };
+}
+
+/**
+ * Page through /v4/games filtered to a set of status IDs. Each page is
+ * cached separately so resuming a partial sync doesn't re-bill IGDB.
+ */
+export async function fetchGamesByStatus(opts: {
+  statusIds: number[];
+  offset: number;
+  limit: number;
+}): Promise<{ games: NormalizedIGDBGame[]; rawUpdatedAt: Map<number, number> }> {
+  const { statusIds, offset, limit } = opts;
+  if (!statusIds.length) return { games: [], rawUpdatedAt: new Map() };
+  const sorted = [...statusIds].sort((a, b) => a - b);
+
+  const rows = await buildAndQuery<IGDBGame>(
+    "games",
+    `games:status:${sorted.join(",")}:o${offset}:l${limit}`,
+    7 * ONE_DAY_MS,
+    (c) =>
+      c
+        .fields([...GAME_FIELDS, "status", "updated_at"])
+        .where(`status = (${sorted.join(",")})`)
+        .limit(limit)
+        .offset(offset)
+  );
+
+  const rawUpdatedAt = new Map<number, number>();
+  for (const row of rows) {
+    if (row.updated_at) rawUpdatedAt.set(row.id, row.updated_at);
+  }
+
+  return { games: rows.map(normalizeRow), rawUpdatedAt };
 }
 
 /**
