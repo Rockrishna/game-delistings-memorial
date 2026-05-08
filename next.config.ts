@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   typescript: {
     tsconfigPath: "./tsconfig.json",
   },
+  // Allow the Docker container hostname to access the dev server (HMR, etc.)
+  allowedDevOrigins: ["game-delistings-tracker-app-1"],
 };
 
 export default nextConfig;
