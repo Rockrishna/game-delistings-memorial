@@ -231,16 +231,23 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  if (!env.INGEST_API_KEY) {
-    return NextResponse.json({ error: "INGEST_API_KEY is not configured." }, { status: 500 });
-  }
   if (!env.IGDB_CLIENT_ID || !env.IGDB_CLIENT_SECRET) {
     return NextResponse.json({ error: "IGDB credentials are not configured." }, { status: 500 });
   }
 
+  const existingEventCount = await prisma.delistingEvent.count();
   const authHeader = request.headers.get("authorization");
-  if (!authHeader || authHeader !== `Bearer ${env.INGEST_API_KEY}`) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const validAuth = !!env.INGEST_API_KEY && authHeader === `Bearer ${env.INGEST_API_KEY}`;
+  const allowBootstrap = existingEventCount === 0;
+
+  if (!validAuth && !allowBootstrap) {
+    return NextResponse.json(
+      {
+        error:
+          "Unauthorized. Database already has events; further re-seeds require Authorization: Bearer <INGEST_API_KEY>.",
+      },
+      { status: 401 }
+    );
   }
 
   await ensureCorePlatformsAndGenres();
