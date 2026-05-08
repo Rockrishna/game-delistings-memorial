@@ -98,3 +98,19 @@ model MediaAsset {
 
   @@index([gameId, type])
 }
+
+// Generic request cache for IGDB (apicalypse) queries. Anything that hits
+// api.igdb.com goes through this so we never re-issue the same query within
+// its TTL — cuts API usage to near zero once the catalogue is warm.
+model IgdbRequest {
+  id        String    @id @default(cuid())
+  cacheKey  String    @unique
+  endpoint  String
+  query     String
+  response  String    // JSON-serialized response body
+  fetchedAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@index([endpoint])
+  @@index([fetchedAt])
+}

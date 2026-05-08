@@ -1,5 +1,6 @@
 import { DelistingType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getIgdbCacheStats } from "@/lib/igdb";
 
 export type PlatformBadge = "steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default";
 export type EventStatus = "recent" | "upcoming" | "delisted";
@@ -31,7 +32,7 @@ const eventInclude = {
 
 export async function getHomePageData() {
   const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
-  const [recent, upcoming, lead, totalEvents, thisYearCount, allEvents] = await Promise.all([
+  const [recent, upcoming, lead, totalEvents, thisYearCount, allEvents, gamesWithMetadata, platformsTracked, genresTracked, igdbCache] = await Promise.all([
     prisma.delistingEvent.findMany({
       where: { type: DelistingType.RECENT },
       include: eventInclude,
@@ -59,6 +60,10 @@ export async function getHomePageData() {
     prisma.delistingEvent.findMany({
       include: { game: { include: { platforms: { include: { platform: true } } } } },
     }),
+    prisma.game.count({ where: { igdbId: { not: null } } }),
+    prisma.platform.count(),
+    prisma.genre.count(),
+    getIgdbCacheStats(),
   ]);
 
   const causeCounts = new Map<string, number>();
@@ -85,6 +90,11 @@ export async function getHomePageData() {
       thisYear: thisYearCount,
       topCause,
       topPlatform,
+      gamesWithMetadata,
+      platformsTracked,
+      genresTracked,
+      igdbRequestsCached: igdbCache.totalRequests,
+      lastIgdbSyncAt: igdbCache.lastSyncAt,
     },
     lead: lead ? mapLead(lead) : null,
     recent: recent.map(mapEventCard),

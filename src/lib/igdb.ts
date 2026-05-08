@@ -1,5 +1,6 @@
 import apicalypse from "apicalypse";
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/prisma";
 
 const TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token";
 const IGDB_API_URL = "https://api.igdb.com/v4";
@@ -23,21 +24,15 @@ async function getAccessToken() {
   if (tokenCache && tokenCache.expiresAt > Date.now()) {
     return tokenCache.value;
   }
-
   if (!env.IGDB_CLIENT_ID || !env.IGDB_CLIENT_SECRET) {
     throw new Error("IGDB credentials are not configured.");
   }
-
   const url = new URL(TWITCH_TOKEN_URL);
   url.searchParams.set("client_id", env.IGDB_CLIENT_ID);
   url.searchParams.set("client_secret", env.IGDB_CLIENT_SECRET);
   url.searchParams.set("grant_type", "client_credentials");
-
   const response = await fetch(url.toString(), { method: "POST", cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to obtain Twitch token (${response.status}).`);
-  }
-
+  if (!response.ok) throw new Error(`Failed to obtain Twitch token (${response.status}).`);
   const payload = (await response.json()) as { access_token: string; expires_in: number };
   tokenCache = {
     value: payload.access_token,
@@ -63,7 +58,7 @@ const GAME_FIELDS = [
   "genres.slug",
 ];
 
-async function igdbClient() {
+async function igdbApiClient() {
   const token = await getAccessToken();
   return apicalypse({
     baseURL: IGDB_API_URL,
@@ -128,14 +123,99 @@ function normalizeRow(row: IGDBGame): NormalizedIGDBGame {
   };
 }
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * ONE_DAY_MS;
+
+/**
+ * Read-through, write-through cache for any IGDB request. The cacheKey is
+ * the dedupe identity; ttlMs is freshness. Cache table lives in Postgres
+ * (model IgdbRequest) so all serverless instances + cold starts share it,
+ * which means a popular query hits the IGDB API once across the whole fleet.
+ */
+async function cachedRequest<T>(opts: {
+  cacheKey: string;
+  endpoint: string;
+  body: string;
+  ttlMs: number;
+}): Promise<{ rows: T[]; fromCache: boolean }> {
+  const { cacheKey, endpoint, body, ttlMs } = opts;
+  const now = Date.now();
+
+  try {
+    const cached = await prisma.igdbRequest.findUnique({ where: { cacheKey } });
+    if (cached && (!cached.expiresAt || cached.expiresAt.getTime() > now)) {
+      return { rows: JSON.parse(cached.response) as T[], fromCache: true };
+    }
+  } catch {
+    /* DB unreachable; fall through to live request */
+  }
+
+  const token = await getAccessToken();
+  const response = await fetch(`${IGDB_API_URL}/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Client-ID": env.IGDB_CLIENT_ID!,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "text/plain",
+    },
+    body,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`IGDB query failed (${response.status}) for ${endpoint}`);
+  }
+  const rows = (await response.json()) as T[];
+
+  try {
+    await prisma.igdbRequest.upsert({
+      where: { cacheKey },
+      create: {
+        cacheKey,
+        endpoint,
+        query: body,
+        response: JSON.stringify(rows),
+        expiresAt: new Date(now + ttlMs),
+      },
+      update: {
+        response: JSON.stringify(rows),
+        fetchedAt: new Date(now),
+        expiresAt: new Date(now + ttlMs),
+        endpoint,
+        query: body,
+      },
+    });
+  } catch {
+    /* cache write failure shouldn't fail the API call */
+  }
+
+  return { rows, fromCache: false };
+}
+
+/**
+ * Build an apicalypse query body via the typed builder, then run it through
+ * the cache. Caller passes the cacheKey so identical calls dedupe.
+ */
+async function buildAndQuery<T>(
+  endpoint: string,
+  cacheKey: string,
+  ttlMs: number,
+  build: (client: Awaited<ReturnType<typeof igdbApiClient>>) => unknown
+): Promise<T[]> {
+  const client = await igdbApiClient();
+  const built = build(client) as { apicalypse?: string };
+  // apicalypse stores the constructed body string on the builder instance.
+  const body = built.apicalypse ?? "";
+  const { rows } = await cachedRequest<T>({ cacheKey, endpoint, body, ttlMs });
+  return rows;
+}
+
 export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDBGame | null> {
-  const client = await igdbClient();
-  const response = await client
-    .fields(GAME_FIELDS)
-    .search(name)
-    .limit(5)
-    .request("/games");
-  const rows = (response.data ?? []) as IGDBGame[];
+  const rows = await buildAndQuery<IGDBGame>(
+    "games",
+    `games:search:${name.toLowerCase()}`,
+    THIRTY_DAYS_MS,
+    (c) => c.fields(GAME_FIELDS).search(name).limit(5)
+  );
   if (!rows.length) return null;
   const lower = name.toLowerCase();
   const exact = rows.find((row) => row.name.toLowerCase() === lower);
@@ -144,12 +224,48 @@ export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDB
 
 export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDBGame[]> {
   if (!ids.length) return [];
-  const client = await igdbClient();
-  const response = await client
-    .fields(GAME_FIELDS)
-    .where(`id = (${ids.join(",")})`)
-    .limit(ids.length)
-    .request("/games");
-  const rows = (response.data ?? []) as IGDBGame[];
+  const sortedIds = [...ids].sort((a, b) => a - b);
+  const rows = await buildAndQuery<IGDBGame>(
+    "games",
+    `games:ids:${sortedIds.join(",")}`,
+    THIRTY_DAYS_MS,
+    (c) =>
+      c
+        .fields(GAME_FIELDS)
+        .where(`id = (${sortedIds.join(",")})`)
+        .limit(sortedIds.length)
+  );
   return rows.map(normalizeRow);
+}
+
+/**
+ * Stats over the IGDB request cache itself — surfaced on the home page so
+ * users can see how much we're hitting the live API vs. serving from
+ * Postgres.
+ */
+export async function getIgdbCacheStats() {
+  try {
+    const [totalRequests, lastSync, latestEndpointGroups] = await Promise.all([
+      prisma.igdbRequest.count(),
+      prisma.igdbRequest.findFirst({
+        orderBy: { fetchedAt: "desc" },
+        select: { fetchedAt: true },
+      }),
+      prisma.igdbRequest.groupBy({
+        by: ["endpoint"],
+        _count: { _all: true },
+      }),
+    ]);
+
+    return {
+      totalRequests,
+      lastSyncAt: lastSync?.fetchedAt.toISOString() ?? null,
+      byEndpoint: latestEndpointGroups.map((row) => ({
+        endpoint: row.endpoint,
+        count: row._count._all,
+      })),
+    };
+  } catch {
+    return { totalRequests: 0, lastSyncAt: null, byEndpoint: [] as Array<{ endpoint: string; count: number }> };
+  }
 }

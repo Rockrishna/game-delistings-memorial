@@ -43,6 +43,11 @@ type HomePayload = {
     thisYear: number;
     topCause: string;
     topPlatform: string;
+    gamesWithMetadata: number;
+    platformsTracked: number;
+    genresTracked: number;
+    igdbRequestsCached: number;
+    lastIgdbSyncAt: string | null;
   };
   lead: LeadStory | null;
   recent: EventCard[];
@@ -286,13 +291,43 @@ export default function HomePage() {
           </aside>
         </div>
 
-        {/* By the numbers */}
+        {/* By the numbers — primary catalogue stats */}
         <div className="grid grid-cols-2 border-t border-double-ink bg-[color:var(--paper-2)] sm:grid-cols-3 lg:grid-cols-5">
           <StatsBlock label="Titles in the ledger" value={data.stats.total.toLocaleString()} />
           <StatsBlock label="Entered this year" value={data.stats.thisYear.toLocaleString()} />
           <StatsBlock label="Upcoming" value={data.stats.upcoming.toLocaleString()} />
           <StatsBlock label="Top cause" value={data.stats.topCause} />
           <StatsBlock label="Most affected" value={data.stats.topPlatform} />
+        </div>
+
+        {/* IGDB cache & catalogue depth — driven by Postgres-backed request cache */}
+        <div className="grid grid-cols-2 border-t border-[color:var(--rule)] bg-[color:var(--paper)] sm:grid-cols-4">
+          <StatsBlock
+            label="Games with IGDB metadata"
+            value={data.stats.gamesWithMetadata.toLocaleString()}
+            note="Hydrated from cache"
+          />
+          <StatsBlock
+            label="Platforms tracked"
+            value={data.stats.platformsTracked.toLocaleString()}
+          />
+          <StatsBlock
+            label="Genres tracked"
+            value={data.stats.genresTracked.toLocaleString()}
+          />
+          <StatsBlock
+            label="IGDB requests cached"
+            value={data.stats.igdbRequestsCached.toLocaleString()}
+            note={
+              data.stats.lastIgdbSyncAt
+                ? `Last sync ${new Date(data.stats.lastIgdbSyncAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}`
+                : undefined
+            }
+          />
         </div>
 
         {/* Search bar */}
@@ -341,10 +376,10 @@ export default function HomePage() {
   );
 }
 
-function StatsBlock({ label, value }: { label: string; value: string }) {
+function StatsBlock({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="border-r border-[color:var(--rule-soft)] last:border-r-0">
-      <StatsCard label={label} value={value} />
+      <StatsCard label={label} value={value} note={note} />
     </div>
   );
 }
