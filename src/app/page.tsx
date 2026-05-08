@@ -324,7 +324,7 @@ export default function HomePage() {
             </div>
           ) : (
             <p className="mt-6 text-center font-serif italic text-[color:var(--ink-3)]">
-              No matches in this morning's edition.
+              No matches in this morning&rsquo;s edition.
             </p>
           )}
           <p className="mt-8 text-center font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">

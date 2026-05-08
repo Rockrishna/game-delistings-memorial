@@ -131,7 +131,7 @@ export default function TimelinePage() {
             Section B · Daily Docket
           </p>
           <h1 className="mt-2 font-display text-4xl font-black sm:text-5xl">
-            This Week's Withdrawals
+            This Week&rsquo;s Withdrawals
           </h1>
           <p className="mx-auto mt-2 max-w-2xl font-serif text-base italic text-[color:var(--ink-2)]">
             Dispatches in chronological order — every recently withdrawn title and every announced
@@ -213,7 +213,7 @@ export default function TimelinePage() {
         <div className="px-6 py-8">
           {loading ? (
             <p className="text-center font-serif italic text-[color:var(--ink-2)]">
-              Setting today's dispatches…
+              Setting today&rsquo;s dispatches…
             </p>
           ) : error ? (
             <p className="text-center font-serif italic text-[color:var(--accent)]">
