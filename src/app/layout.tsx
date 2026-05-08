@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 export const metadata: Metadata = {
   title: "Game Delistings Tracker",
   description: "Track recent and upcoming video game delistings.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
