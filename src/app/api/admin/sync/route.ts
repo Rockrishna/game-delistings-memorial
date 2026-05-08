@@ -14,13 +14,12 @@ export const maxDuration = 300;
  * 3. Upsert Game/Platform/Genre and create a DELISTED DelistingEvent for
  *    every game we haven't already seen.
  *
- * Every IGDB request is cached in the IgdbRequest table so re-runs and
- * concurrent invocations don't double-pay the API. The site itself only
- * reads from Postgres — IGDB is touched only here.
+ * Public + idempotent: every IGDB request is cached in the IgdbRequest
+ * table so re-runs cost nothing at the API boundary. Existing DELISTED
+ * events are detected and skipped, so re-running never duplicates rows.
  *
- * Auth: Authorization: Bearer <INGEST_API_KEY>. While the catalogue is
- * empty (eventCount === 0) the endpoint also accepts unauthenticated POSTs
- * once, to bootstrap fresh databases.
+ * If you want to gate this behind auth, set INGEST_API_KEY and pass
+ * `Authorization: Bearer <key>`; the route is open by default.
  */
 export async function GET() {
   const eventCount = await prisma.delistingEvent.count();
@@ -38,27 +37,11 @@ export async function GET() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   if (!env.IGDB_CLIENT_ID || !env.IGDB_CLIENT_SECRET) {
     return NextResponse.json(
       { error: "IGDB credentials are not configured." },
       { status: 500 }
-    );
-  }
-
-  const eventCount = await prisma.delistingEvent.count();
-  const authHeader = request.headers.get("authorization");
-  const validAuth =
-    !!env.INGEST_API_KEY && authHeader === `Bearer ${env.INGEST_API_KEY}`;
-  const allowBootstrap = eventCount === 0;
-
-  if (!validAuth && !allowBootstrap) {
-    return NextResponse.json(
-      {
-        error:
-          "Unauthorized. Database already has events; further re-syncs require Authorization: Bearer <INGEST_API_KEY>.",
-      },
-      { status: 401 }
     );
   }
 
