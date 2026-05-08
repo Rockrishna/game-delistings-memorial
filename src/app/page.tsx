@@ -65,13 +65,6 @@ function formatShortDate(value: string) {
   });
 }
 
-function leadFiledLine(lead: LeadStory) {
-  const parts: string[] = [];
-  if (lead.reason) parts.push(lead.reason);
-  for (const genre of lead.genres.slice(0, 2)) parts.push(genre);
-  return parts.length ? `Filed under: ${parts.join(", ")}` : "Filed under: Delisted";
-}
-
 export default function HomePage() {
   const [data, setData] = useState<HomePayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,7 +100,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-[1280px] px-6 py-16 text-center font-serif italic text-[color:var(--ink-2)]">
-        Setting the type…
+        Loading…
       </main>
     );
   }
@@ -115,7 +108,7 @@ export default function HomePage() {
   if (error || !data) {
     return (
       <main className="mx-auto max-w-[1280px] px-6 py-16 text-center font-serif italic text-[color:var(--accent)]">
-        The press could not run today. {error}
+        Could not load data. {error}
       </main>
     );
   }
@@ -160,7 +153,7 @@ export default function HomePage() {
                 ))
               ) : (
                 <li className="font-serif text-sm italic text-[color:var(--ink-3)]">
-                  No further notices today.
+                  No additional entries this week.
                 </li>
               )}
             </ul>
@@ -169,43 +162,59 @@ export default function HomePage() {
           {lead ? (
             <article className="border-b border-[color:var(--rule)] p-6 lg:border-b-0 lg:border-r lg:p-8">
               <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--accent)]">
-                Lead Obituary · {formatDate(lead.delistDate)}
-              </p>
-              <h2 className="mt-2 font-display text-3xl font-black leading-tight text-[color:var(--ink)] sm:text-[40px]">
-                {lead.title}{" "}
-                <span className="font-display italic text-[color:var(--ink-2)]">
-                  laid to rest after {lead.releaseYear ? `${new Date(lead.delistDate).getUTCFullYear() - lead.releaseYear} years` : "a long run"} on {lead.platforms[0] ?? "the storefront"}.
-                </span>
-              </h2>
-              <p className="mt-3 font-serif text-sm italic text-[color:var(--ink-2)]">
-                The Delisted Desk &nbsp;·&nbsp; {leadFiledLine(lead)}
+                Most recent withdrawal · {formatDate(lead.delistDate)}
               </p>
 
-              {lead.coverUrl ? (
-                <div className="broadsheet-cover-frame mt-5 aspect-[16/9] w-full">
-                  <img src={lead.coverUrl} alt={lead.title} loading="eager" />
+              <Link
+                href={`/games/${lead.slug ?? lead.id}`}
+                className="mt-3 grid gap-5 sm:grid-cols-[180px_1fr] group"
+              >
+                <div className="broadsheet-cover-frame aspect-[3/4] w-full">
+                  {lead.coverUrl ? (
+                    <img src={lead.coverUrl} alt={lead.title} loading="eager" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
+                      No cover
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="mt-5 flex aspect-[16/9] w-full items-center justify-center border border-[color:var(--ink)] bg-[color:var(--paper-2)] font-typewriter text-[11px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
-                  Lead Artwork · Pending IGDB Sync
-                </div>
-              )}
-              <p className="mt-1 font-typewriter text-[10px] uppercase tracking-[0.14em] text-[color:var(--ink-3)]">
-                Box art via IGDB.
-              </p>
 
-              <p className="dropcap lede-2col mt-5 font-serif text-base text-[color:var(--ink-2)]">
-                {lead.summary ??
-                  `${lead.title} has been removed from sale${
-                    lead.platforms.length ? ` on ${lead.platforms.join(", ")}` : ""
-                  }${lead.releaseYear ? `, ending an availability streak that began in ${lead.releaseYear}` : ""}. ${
-                    lead.reason ?? "No public statement has been issued by the publisher."
-                  } Existing owners retain access to the title in their library, but new purchases are no longer possible.`}
-              </p>
+                <div>
+                  <h2 className="font-display text-3xl font-bold leading-tight text-[color:var(--ink)] group-hover:text-[color:var(--accent)] sm:text-4xl">
+                    {lead.title}
+                  </h2>
+                  <p className="mt-2 font-serif text-base italic text-[color:var(--ink-2)]">
+                    {lead.releaseYear ? `Released ${lead.releaseYear}` : "Release date unknown"}
+                    {lead.platforms.length ? ` · ${lead.platforms.join(", ")}` : ""}
+                  </p>
+                  <dl className="mt-4 grid grid-cols-[100px_1fr] gap-x-3 gap-y-2 font-serif text-sm">
+                    <dt className="font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                      Delisted
+                    </dt>
+                    <dd>{formatDate(lead.delistDate)}</dd>
+                    {lead.reason ? (
+                      <>
+                        <dt className="font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                          Reason
+                        </dt>
+                        <dd>{lead.reason}</dd>
+                      </>
+                    ) : null}
+                    {lead.genres.length ? (
+                      <>
+                        <dt className="font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                          Genres
+                        </dt>
+                        <dd>{lead.genres.join(", ")}</dd>
+                      </>
+                    ) : null}
+                  </dl>
+                </div>
+              </Link>
 
               <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-[color:var(--rule-soft)] pt-3 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
                 <Link href={`/games/${lead.slug ?? lead.id}`} className="text-[color:var(--accent)] underline-offset-2 hover:underline">
-                  Read full entry →
+                  View entry →
                 </Link>
                 {lead.sourceUrl ? (
                   <a
@@ -222,23 +231,17 @@ export default function HomePage() {
           ) : (
             <article className="border-b border-[color:var(--rule)] p-8 lg:border-b-0 lg:border-r">
               <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--accent)]">
-                Awaiting first dispatch
+                No records yet
               </p>
-              <h2 className="mt-3 font-display text-3xl font-black leading-tight">
-                The press is set, but no obituaries have yet been filed.
-              </h2>
-              <p className="mt-3 font-serif italic text-[color:var(--ink-2)]">
-                Add delisting events to the database to begin publication.
+              <p className="mt-3 font-serif text-base text-[color:var(--ink-2)]">
+                The database is empty. Add delisting events to begin tracking.
               </p>
             </article>
           )}
 
           <aside className="p-5">
             <p className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">
-              The Watch List
-            </p>
-            <p className="mt-1 font-serif text-xs italic text-[color:var(--ink-2)]">
-              Titles announced for withdrawal in the coming weeks.
+              Upcoming delistings
             </p>
             <ul className="mt-3 space-y-3">
               {filteredUpcoming.slice(0, 5).length ? (
@@ -270,7 +273,7 @@ export default function HomePage() {
                 ))
               ) : (
                 <li className="font-serif text-sm italic text-[color:var(--ink-3)]">
-                  No titles currently on the watch list.
+                  No upcoming delistings.
                 </li>
               )}
             </ul>
@@ -278,7 +281,7 @@ export default function HomePage() {
               href="/timeline"
               className="mt-3 inline-block font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)] underline-offset-2 hover:underline"
             >
-              See full calendar →
+              View full timeline →
             </Link>
           </aside>
         </div>
@@ -295,16 +298,16 @@ export default function HomePage() {
         {/* Search bar */}
         <div className="border-t-[3px] border-double border-[color:var(--ink)] px-6 py-5">
           <SearchBar
-            placeholder="Search the paper — by title, platform, or genre…"
+            placeholder="Search by title, platform, or genre…"
             onSearch={setSearchQuery}
             initialValue={searchQuery}
           />
         </div>
 
-        {/* Obituaries of note */}
+        {/* Recently delisted */}
         <div className="border-t border-[color:var(--rule)] px-6 py-8">
           <p className="text-center font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
-            · Obituaries of Note ·
+            Recently delisted
           </p>
           <hr className="mt-2 border-[color:var(--rule-soft)]" />
           {featured.length ? (
@@ -324,12 +327,12 @@ export default function HomePage() {
             </div>
           ) : (
             <p className="mt-6 text-center font-serif italic text-[color:var(--ink-3)]">
-              No matches in this morning&rsquo;s edition.
+              No delistings match this filter.
             </p>
           )}
-          <p className="mt-8 text-center font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
+          <p className="mt-8 text-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
             <Link href="/mortuary" className="hover:text-[color:var(--accent)]">
-              · Continued in the obituaries section ·
+              View full archive →
             </Link>
           </p>
         </div>

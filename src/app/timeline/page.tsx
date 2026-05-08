@@ -111,7 +111,7 @@ export default function TimelinePage() {
 
   const shownTimeline = filteredTimeline.slice(0, visibleGroups);
   const hasMore = filteredTimeline.length > shownTimeline.length;
-  const totalDispatches = filteredTimeline.reduce((sum, period) => sum + period.games.length, 0);
+  const totalEntries = filteredTimeline.reduce((sum, period) => sum + period.games.length, 0);
 
   function toggleStatus(status: "recent" | "upcoming" | "delisted") {
     setStatusFilters((current) => {
@@ -128,14 +128,13 @@ export default function TimelinePage() {
       <section className="border-x border-b border-[color:var(--ink)]">
         <header className="border-b-[3px] border-double border-[color:var(--ink)] px-6 py-6 text-center">
           <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
-            Section B · Daily Docket
+            Timeline
           </p>
           <h1 className="mt-2 font-display text-4xl font-black sm:text-5xl">
-            This Week&rsquo;s Withdrawals
+            Delistings by Date
           </h1>
           <p className="mx-auto mt-2 max-w-2xl font-serif text-base italic text-[color:var(--ink-2)]">
-            Dispatches in chronological order — every recently withdrawn title and every announced
-            removal.
+            Recently delisted titles and scheduled removals, grouped by month.
           </p>
         </header>
 
@@ -143,7 +142,7 @@ export default function TimelinePage() {
         <div className="border-b border-[color:var(--rule)] bg-[color:var(--paper-2)] px-6 py-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto] md:items-end">
             <SearchBar
-              placeholder="Search games or causes…"
+              placeholder="Search games or reasons…"
               onSearch={setSearchQuery}
               initialValue={searchQuery}
             />
@@ -205,7 +204,7 @@ export default function TimelinePage() {
             </div>
           </div>
           <p className="mt-3 font-serif text-xs italic text-[color:var(--ink-3)]">
-            Showing {totalDispatches} dispatches across {filteredTimeline.length} dated period
+            Showing {totalEntries} entries across {filteredTimeline.length} month
             {filteredTimeline.length === 1 ? "" : "s"}.
           </p>
         </div>
@@ -213,15 +212,15 @@ export default function TimelinePage() {
         <div className="px-6 py-8">
           {loading ? (
             <p className="text-center font-serif italic text-[color:var(--ink-2)]">
-              Setting today&rsquo;s dispatches…
+              Loading timeline…
             </p>
           ) : error ? (
             <p className="text-center font-serif italic text-[color:var(--accent)]">
-              The wire is down. {error}
+              Could not load timeline. {error}
             </p>
           ) : shownTimeline.length === 0 ? (
             <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
-              No dispatches match these filters. Try widening the platform or status.
+              No entries match these filters. Try widening the platform or status.
             </p>
           ) : (
             <div className="space-y-12">
@@ -235,7 +234,7 @@ export default function TimelinePage() {
                       </h2>
                       {headDate ? (
                         <p className="font-serif text-sm italic text-[color:var(--ink-3)]">
-                          · earliest dispatch {formatDateLong(headDate).split(",").slice(1).join(",").trim()}
+                          · earliest delisting {formatDateLong(headDate).split(",").slice(1).join(",").trim()}
                         </p>
                       ) : null}
                     </header>
@@ -262,7 +261,7 @@ export default function TimelinePage() {
                             </div>
                             <div className="min-w-0">
                               <p className="font-typewriter text-[9px] uppercase tracking-[0.18em] text-[color:var(--accent)]">
-                                Withdrawal · {withdrawalLabel(game.daysFromNow)}
+                                {withdrawalLabel(game.daysFromNow)}
                               </p>
                               <Link
                                 href={`/games/${game.slug ?? game.id}`}
@@ -291,7 +290,7 @@ export default function TimelinePage() {
                                 href={`/games/${game.slug ?? game.id}`}
                                 className="mt-3 inline-block font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)] underline-offset-2 hover:underline"
                               >
-                                Read full entry →
+                                View entry →
                               </Link>
                             </div>
                           </div>
@@ -309,7 +308,7 @@ export default function TimelinePage() {
                     onClick={() => setVisibleGroups((current) => current + 4)}
                     className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-5 py-2 font-typewriter text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink)] transition-colors hover:bg-[color:var(--ink)] hover:text-[color:var(--paper)]"
                   >
-                    Load more periods
+                    Load more months
                   </button>
                 </div>
               ) : null}

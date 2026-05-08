@@ -58,7 +58,7 @@ export default function MortuaryPage() {
           fetch(`/api/mortuary?${params.toString()}`, { cache: "no-store" }),
           fetch("/api/mortuary/facets", { cache: "no-store" }),
         ]);
-        if (!eventsResponse.ok) throw new Error("Failed to load obituaries.");
+        if (!eventsResponse.ok) throw new Error("Failed to load archive.");
         if (!facetsResponse.ok) throw new Error("Failed to load facets.");
         setGames((await eventsResponse.json()) as MortuaryGame[]);
         setFacets((await facetsResponse.json()) as Facets);
@@ -109,12 +109,11 @@ export default function MortuaryPage() {
       <section className="border-x border-b border-[color:var(--ink)]">
         <header className="border-b-[3px] border-double border-[color:var(--ink)] px-6 py-8 text-center">
           <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
-            Section C · Collected Obituaries
+            Archive
           </p>
-          <h1 className="mt-2 font-display text-5xl font-black sm:text-6xl">In Memoriam</h1>
+          <h1 className="mt-2 font-display text-5xl font-black sm:text-6xl">Delisted Games</h1>
           <p className="mx-auto mt-3 max-w-2xl font-serif text-base italic text-[color:var(--ink-2)]">
-            Permanent records of digital titles withdrawn from sale. They live on only in player
-            libraries.
+            Permanent records of titles removed from digital storefronts.
           </p>
         </header>
 
@@ -191,15 +190,15 @@ export default function MortuaryPage() {
           <div className="px-6 py-8">
             {loading ? (
               <p className="text-center font-serif italic text-[color:var(--ink-2)]">
-                Casting the type…
+                Loading archive…
               </p>
             ) : error ? (
               <p className="text-center font-serif italic text-[color:var(--accent)]">
-                The archive is offline. {error}
+                Could not load archive. {error}
               </p>
             ) : filteredGames.length === 0 ? (
               <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
-                No obituaries match these filters. Adjust the rail to widen the field.
+                No records match these filters. Try widening the platform, cause, or decade.
               </p>
             ) : (
               <>
@@ -220,7 +219,7 @@ export default function MortuaryPage() {
                           <img src={game.coverUrl} alt={game.title} loading="lazy" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
-                            Portrait
+                            No Cover
                           </div>
                         )}
                       </div>
@@ -252,14 +251,11 @@ export default function MortuaryPage() {
                       onClick={() => setVisibleCount((current) => current + 12)}
                       className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-5 py-2 font-typewriter text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink)] transition-colors hover:bg-[color:var(--ink)] hover:text-[color:var(--paper)]"
                     >
-                      Load more obituaries
+                      Load more records
                     </button>
                   </div>
                 ) : null}
 
-                <p className="mt-12 text-center font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
-                  · Continued in subsequent volumes ·
-                </p>
               </>
             )}
           </div>

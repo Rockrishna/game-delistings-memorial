@@ -28,9 +28,9 @@ const typewriter = Special_Elite({
 });
 
 export const metadata: Metadata = {
-  title: "The Delisted — A daily record of digital games withdrawn from sale",
+  title: "The Delisted — Game Delistings Tracker",
   description:
-    "An ongoing memorial of video games removed, withdrawn, or about to vanish from major digital storefronts.",
+    "Tracker for video games removed from sale, withdrawn, or scheduled for removal across major digital storefronts.",
   icons: { icon: "/favicon.svg" },
 };
 
@@ -49,8 +49,8 @@ export default function RootLayout({
           {children}
           <footer className="mt-16 border-t border-[color:var(--rule)] bg-[color:var(--paper-2)]">
             <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-6 py-6 text-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)] md:flex-row md:items-center md:justify-between md:text-left">
-              <span>The Delisted · A non-commercial memorial of digital games</span>
-              <span>Metadata via IGDB · Curation by the editors</span>
+              <span>The Delisted · Game Delistings Tracker</span>
+              <span>Game metadata via IGDB</span>
             </div>
           </footer>
         </ThemeProvider>

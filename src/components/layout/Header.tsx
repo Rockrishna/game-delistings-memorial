@@ -6,12 +6,10 @@ import { useEffect, useState } from "react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Front Page" },
-  { href: "/timeline", label: "This Week" },
-  { href: "/mortuary", label: "Obituaries" },
+  { href: "/", label: "Home" },
+  { href: "/timeline", label: "Timeline" },
+  { href: "/mortuary", label: "Archive" },
 ];
-
-const VOLUME_EPOCH = new Date("2024-01-01");
 
 function dateLine(now: Date) {
   return now.toLocaleDateString("en-US", {
@@ -20,14 +18,6 @@ function dateLine(now: Date) {
     month: "long",
     year: "numeric",
   });
-}
-
-function volumeAndIssue(now: Date) {
-  const yearsSinceEpoch = now.getUTCFullYear() - VOLUME_EPOCH.getUTCFullYear();
-  const startOfYear = Date.UTC(now.getUTCFullYear(), 0, 1);
-  const dayOfYear = Math.floor((now.getTime() - startOfYear) / 86_400_000) + 1;
-  const volume = ["i", "ii", "iii", "iv", "v", "vi", "vii"][yearsSinceEpoch] ?? "i";
-  return { volume, issue: dayOfYear };
 }
 
 export default function Header() {
@@ -39,14 +29,12 @@ export default function Header() {
     setToday(new Date());
   }, []);
 
-  const { volume, issue } = today ? volumeAndIssue(today) : { volume: "i", issue: 1 };
-
   return (
     <header className="border-b-[3px] border-double border-[color:var(--ink)] bg-[color:var(--paper)]">
       <div className="mx-auto max-w-[1280px] px-6 pt-6">
         <div className="flex items-baseline justify-between border-b border-[color:var(--ink)] pb-2 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
-          <span>Vol. {volume} · No. {issue}</span>
-          <span className="hidden sm:block">{today ? dateLine(today) : "Daily edition"}</span>
+          <span className="hidden sm:block">{today ? dateLine(today) : ""}</span>
+          <span className="sm:hidden">Game Delistings Tracker</span>
           <button
             type="button"
             onClick={toggle}
@@ -62,7 +50,7 @@ export default function Header() {
             The Delisted
           </h1>
           <p className="mt-2 font-serif text-base italic text-[color:var(--ink-2)] sm:text-lg">
-            A daily record of digital games removed from sale, withdrawn, or about to vanish.
+            Tracking digital games removed from sale, withdrawn, or scheduled for removal.
           </p>
         </Link>
       </div>

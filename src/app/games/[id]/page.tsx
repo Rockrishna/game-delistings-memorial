@@ -26,19 +26,16 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
       <article className="border-x border-b border-[color:var(--ink)]">
         <header className="border-b-[3px] border-double border-[color:var(--ink)] px-8 py-10 text-center">
           <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
-            Section A · Full Obituary
+            Game record
           </p>
           <h1 className="mt-4 font-display text-5xl font-black leading-tight sm:text-6xl">
             {game.title}
           </h1>
-          {releaseYear && delistYear ? (
+          {releaseYear || delistYear ? (
             <p className="mt-3 font-serif text-lg italic text-[color:var(--ink-2)]">
-              {releaseYear} — {delistYear}
+              Released {releaseYear ?? "—"} · Delisted {delistYear ?? "—"}
             </p>
           ) : null}
-          <p className="mx-auto mt-4 max-w-xl border-y border-[color:var(--rule)] py-3 font-serif text-base italic text-[color:var(--ink-2)]">
-            {game.platforms.length ? `Of ${game.platforms.join(", ")}.` : "Of digital storefront."}
-          </p>
         </header>
 
         <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
@@ -48,7 +45,7 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 <img src={game.coverUrl} alt={game.title} />
               ) : (
                 <div className="flex h-full w-full items-center justify-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
-                  Portrait pending
+                  No Cover
                 </div>
               )}
             </div>
@@ -78,27 +75,21 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
           <div className="px-8 py-10">
             <div className="space-y-7">
-              <section>
-                <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--accent)]">
-                  In remembrance
-                </p>
-                <p className="dropcap mt-2 font-serif text-base text-[color:var(--ink-2)] sm:text-[17px]">
-                  {game.summary ??
-                    `${game.title} has been removed from sale${
-                      game.platforms.length ? ` on ${game.platforms.join(", ")}` : ""
-                    }${
-                      releaseYear ? `, ending an availability streak that began in ${releaseYear}` : ""
-                    }. ${
-                      game.reason ??
-                      "No public statement has been issued by the publisher regarding this withdrawal."
-                    } Existing owners retain access to the title in their library, but new purchases are no longer possible.`}
-                </p>
-              </section>
+              {game.summary ? (
+                <section>
+                  <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
+                    Description (via IGDB)
+                  </p>
+                  <p className="mt-2 font-serif text-base text-[color:var(--ink-2)] sm:text-[17px]">
+                    {game.summary}
+                  </p>
+                </section>
+              ) : null}
 
               {game.reason ? (
                 <section className="border-l-2 border-[color:var(--accent)] pl-4">
                   <p className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">
-                    Cause
+                    Reason for delisting
                   </p>
                   <p className="mt-1 font-display text-xl font-bold leading-snug">
                     {game.reason}
@@ -108,46 +99,37 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
 
               <section>
                 <p className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
-                  Service
+                  Genres
                 </p>
-                <blockquote className="mt-2 border-y border-[color:var(--rule)] py-4 text-center font-display text-2xl italic leading-snug text-[color:var(--ink)]">
-                  &ldquo;{game.title} ceased trading{delistYear ? ` in ${delistYear}` : ""}.&rdquo;
-                </blockquote>
-                <p className="mt-2 text-right font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
-                  — The Delisted Desk
+                <p className="mt-2 font-serif text-base text-[color:var(--ink-2)]">
+                  {game.genres.length ? game.genres.join(", ") : "Not classified"}
                 </p>
               </section>
 
-              <section className="border-t border-[color:var(--rule)] pt-5">
+              <section>
                 <p className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
-                  Survived by
+                  Platforms
                 </p>
                 <p className="mt-2 font-serif text-base text-[color:var(--ink-2)]">
-                  {game.platforms.length ? (
-                    <>
-                      Players who own the title in their {game.platforms.join(" / ")} library.
-                    </>
-                  ) : (
-                    <>Existing owners on prior storefronts.</>
-                  )}
+                  {game.platforms.length ? game.platforms.join(", ") : "—"}
                 </p>
               </section>
 
               <nav className="flex flex-wrap items-center gap-4 border-t border-[color:var(--rule)] pt-5 font-typewriter text-[10px] uppercase tracking-[0.18em]">
                 <Link href="/" className="text-[color:var(--ink-2)] hover:text-[color:var(--accent)]">
-                  ← Front Page
+                  ← Home
                 </Link>
                 <Link
                   href="/timeline"
                   className="text-[color:var(--ink-2)] hover:text-[color:var(--accent)]"
                 >
-                  This Week
+                  Timeline
                 </Link>
                 <Link
                   href="/mortuary"
                   className="text-[color:var(--ink-2)] hover:text-[color:var(--accent)]"
                 >
-                  Obituaries
+                  Archive
                 </Link>
               </nav>
             </div>

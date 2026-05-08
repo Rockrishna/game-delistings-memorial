@@ -16,9 +16,9 @@ interface GameCardProps {
 }
 
 const STATUS_LABEL: Record<StatusType, string> = {
-  recent: "Lately Withdrawn",
-  upcoming: "Forthcoming",
-  delisted: "In Memoriam",
+  recent: "Recently Delisted",
+  upcoming: "Upcoming",
+  delisted: "Delisted",
 };
 
 export default function GameCard({
@@ -55,7 +55,7 @@ export default function GameCard({
           <img src={coverUrl} alt={title} loading="lazy" />
         ) : (
           <div className="flex h-full w-full items-center justify-center font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-3)]">
-            No Portrait
+            No Cover
           </div>
         )}
       </div>
