@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 const serverEnvSchema = z.object({
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
+  PRISMA_DATABASE_URL: z.string().url().optional(),
+  POSTGRES_URL: z.string().url().optional(),
   IGDB_CLIENT_ID: z.string().optional(),
   IGDB_CLIENT_SECRET: z.string().optional(),
   IGDB_WEBHOOK_SECRET: z.string().optional(),
@@ -10,6 +12,8 @@ const serverEnvSchema = z.object({
 
 export const env = serverEnvSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
+  PRISMA_DATABASE_URL: process.env.PRISMA_DATABASE_URL,
+  POSTGRES_URL: process.env.POSTGRES_URL,
   IGDB_CLIENT_ID: process.env.IGDB_CLIENT_ID,
   IGDB_CLIENT_SECRET: process.env.IGDB_CLIENT_SECRET,
   IGDB_WEBHOOK_SECRET: process.env.IGDB_WEBHOOK_SECRET,

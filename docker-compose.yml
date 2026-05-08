@@ -26,7 +26,9 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
+      PRISMA_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/game_delistings?schema=public
 
 volumes:
   postgres_data:
