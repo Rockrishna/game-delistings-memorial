@@ -203,17 +203,29 @@ async function cachedRequest<T>(opts: {
 /**
  * Build an apicalypse query body via the typed builder, then run it through
  * the cache. Caller passes the cacheKey so identical calls dedupe.
+ *
+ * The apicalypse Builder only writes the composed query string to its
+ * `apicalypse` field when `.build()` is called explicitly — without it
+ * the body is the empty string and IGDB silently returns default rows
+ * (10 records, id field only). We always call .build() and assert the
+ * body is non-empty before issuing the request.
  */
 async function buildAndQuery<T>(
   endpoint: string,
   cacheKey: string,
   ttlMs: number,
-  build: (client: Awaited<ReturnType<typeof igdbApiClient>>) => unknown
+  build: (
+    client: Awaited<ReturnType<typeof igdbApiClient>>
+  ) => Awaited<ReturnType<typeof igdbApiClient>>
 ): Promise<T[]> {
   const client = await igdbApiClient();
-  const built = build(client) as { apicalypse?: string };
-  // apicalypse stores the constructed body string on the builder instance.
-  const body = built.apicalypse ?? "";
+  // The Builder's `apicalypse` field is protected at the TS level but is
+  // populated by .build() and accessed at runtime. Cast through unknown.
+  const built = build(client).build() as unknown as { apicalypse: string };
+  const body = built.apicalypse;
+  if (!body) {
+    throw new Error(`apicalypse builder produced empty body for ${endpoint}`);
+  }
   const { rows } = await cachedRequest<T>({ cacheKey, endpoint, body, ttlMs });
   return rows;
 }

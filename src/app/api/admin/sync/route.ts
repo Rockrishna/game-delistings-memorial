@@ -37,7 +37,7 @@ export async function GET() {
   });
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   if (!env.IGDB_CLIENT_ID || !env.IGDB_CLIENT_SECRET) {
     return NextResponse.json(
       { error: "IGDB credentials are not configured." },
@@ -45,9 +45,16 @@ export async function POST() {
     );
   }
 
+  // ?fresh=1 clears cached IGDB request rows so a single run re-fetches
+  // (used to recover from a previously polluted cache).
+  const fresh = new URL(request.url).searchParams.get("fresh") === "1";
+  if (fresh) {
+    await prisma.igdbRequest.deleteMany({});
+  }
+
   const summary = await syncDelistedFromIGDB();
   const cache = await getIgdbCacheStats();
   const totalEvents = await prisma.delistingEvent.count();
 
-  return NextResponse.json({ ok: true, summary, cache, totalEvents });
+  return NextResponse.json({ ok: true, fresh, summary, cache, totalEvents });
 }
