@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
