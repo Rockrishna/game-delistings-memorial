@@ -218,6 +218,7 @@ async function upsertGameFromIgdb(record: NormalizedIGDBGame) {
 }
 
 export async function GET() {
+  const eventCount = await prisma.delistingEvent.count();
   return NextResponse.json({
     configured: {
       INGEST_API_KEY: !!env.INGEST_API_KEY,
@@ -225,8 +226,10 @@ export async function GET() {
       IGDB_CLIENT_SECRET: !!env.IGDB_CLIENT_SECRET,
     },
     curatedCount: CURATED.length,
+    eventCount,
+    bootstrapAvailable: eventCount === 0,
     instructions:
-      "POST with `Authorization: Bearer <INGEST_API_KEY>` to seed the database with the curated list and IGDB metadata. Idempotent — re-runs upsert.",
+      "POST to seed. If the database is empty, no auth is required (one-shot bootstrap). Otherwise pass `Authorization: Bearer <INGEST_API_KEY>`.",
   });
 }
 
