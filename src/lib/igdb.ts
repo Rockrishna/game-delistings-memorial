@@ -93,6 +93,40 @@ function toSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDBGame | null> {
+  const escaped = name.replace(/"/g, '\\"');
+  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.id,platforms.name,platforms.abbreviation,platforms.slug,genres.id,genres.name,genres.slug; search "${escaped}"; where version_parent = null & category = (0,4,8,9); limit 1;`;
+  const rows = await queryIGDB<IGDBGame>("games", query);
+  if (!rows.length) return null;
+  return mapIGDBRow(rows[0]);
+}
+
+function mapIGDBRow(row: IGDBGame): NormalizedIGDBGame {
+  return {
+    igdbId: row.id,
+    slug: row.slug || toSlug(row.name),
+    name: row.name,
+    summary: row.summary,
+    firstReleaseAt: row.first_release_date
+      ? new Date(row.first_release_date * 1000)
+      : undefined,
+    rating: row.rating,
+    coverUrl: row.cover?.image_id ? imageUrlFromId(row.cover.image_id) : undefined,
+    artworkUrls: (row.artworks ?? []).map((art) => imageUrlFromId(art.image_id, "t_screenshot_huge")),
+    platforms: (row.platforms ?? []).map((platform) => ({
+      igdbId: platform.id,
+      name: platform.name,
+      abbreviation: platform.abbreviation,
+      slug: platform.slug || toSlug(platform.name),
+    })),
+    genres: (row.genres ?? []).map((genre) => ({
+      igdbId: genre.id,
+      name: genre.name,
+      slug: genre.slug || toSlug(genre.name),
+    })),
+  };
+}
+
 export async function fetchIGDBGamesByIds(ids: number[]) {
   if (!ids.length) {
     return [];

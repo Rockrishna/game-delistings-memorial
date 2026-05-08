@@ -120,7 +120,8 @@ export default function HomePage() {
     );
   }
 
-  const lead = data.lead ?? data.recent[0] ?? null;
+  const lead: LeadStory | null =
+    data.lead ?? (data.recent[0] ? eventToLead(data.recent[0]) : null);
   const sideObits = data.recent.slice(lead ? 1 : 0, lead ? 5 : 4);
   const featured = filteredRecent.slice(0, 3);
 
@@ -343,6 +344,22 @@ function StatsBlock({ label, value }: { label: string; value: string }) {
       <StatsCard label={label} value={value} />
     </div>
   );
+}
+
+function eventToLead(event: EventCard): LeadStory {
+  return {
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    summary: null,
+    coverUrl: event.coverUrl,
+    platforms: event.platforms,
+    genres: [],
+    delistDate: event.delistDate,
+    releaseYear: event.releaseYear ?? null,
+    reason: event.reason ?? null,
+    sourceUrl: event.sourceUrl ?? null,
+  };
 }
 
 function filterEvents<T extends { title: string; platforms: string[]; reason?: string | null }>(
