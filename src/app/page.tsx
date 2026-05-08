@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import StatsCard from "@/components/home/StatsCard";
 import GameCard from "@/components/home/GameCard";
 import SearchBar from "@/components/common/SearchBar";
@@ -34,6 +35,7 @@ type HomePayload = {
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("");
   const [data, setData] = useState<HomePayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,124 +59,214 @@ export default function HomePage() {
     run();
   }, []);
 
-  const filteredRecent = useMemo(() => {
-    const list = data?.recent ?? [];
-    if (!searchQuery.trim()) return list;
-    const q = searchQuery.toLowerCase();
-    return list.filter(
-      (game) =>
-        game.title.toLowerCase().includes(q) ||
-        game.platforms.some((platform) => platform.toLowerCase().includes(q))
-    );
-  }, [data?.recent, searchQuery]);
+  const allPlatforms = useMemo(() => {
+    const values = new Set<string>();
+    [...(data?.recent ?? []), ...(data?.upcoming ?? [])].forEach((game) => {
+      game.platforms.forEach((platform) => values.add(platform));
+    });
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }, [data?.recent, data?.upcoming]);
 
-  const filteredUpcoming = useMemo(() => {
-    const list = data?.upcoming ?? [];
-    if (!searchQuery.trim()) return list;
-    const q = searchQuery.toLowerCase();
-    return list.filter(
-      (game) =>
-        game.title.toLowerCase().includes(q) ||
-        game.platforms.some((platform) => platform.toLowerCase().includes(q))
-    );
-  }, [data?.upcoming, searchQuery]);
+  const filteredRecent = useMemo(
+    () => filterGames(data?.recent ?? [], searchQuery, selectedPlatform),
+    [data?.recent, searchQuery, selectedPlatform]
+  );
+
+  const filteredUpcoming = useMemo(
+    () => filterGames(data?.upcoming ?? [], searchQuery, selectedPlatform),
+    [data?.upcoming, searchQuery, selectedPlatform]
+  );
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#0f1320] px-6 py-12">
-        <div className="max-w-7xl mx-auto text-[#c9d0e8]">Loading game data...</div>
+      <main className="min-h-screen bg-[#15121b] px-6 py-12">
+        <div className="mx-auto max-w-[1280px] text-[#cbc3d7]">Loading game data...</div>
       </main>
     );
   }
 
   if (error || !data) {
     return (
-      <main className="min-h-screen bg-[#0f1320] px-6 py-12">
-        <div className="max-w-7xl mx-auto text-red-300">
+      <main className="min-h-screen bg-[#15121b] px-6 py-12">
+        <div className="mx-auto max-w-[1280px] text-red-300">
           Could not load delisting data. {error}
         </div>
       </main>
     );
   }
 
+  const heroImage = data.recent[0]?.coverUrl ?? data.upcoming[0]?.coverUrl;
+
   return (
-    <main className="min-h-screen bg-[#0f1320]">
-      <section className="py-16 px-6 border-b border-[#2a3248]">
-        <div className="max-w-7xl mx-auto">
-          <div className="space-y-4 mb-12">
-            <h1 className="text-5xl font-bold text-[#f4f6ff]">Game Delistings Tracker</h1>
-            <p className="text-xl text-[#c9d0e8] max-w-2xl">
-              Track recently removed titles, upcoming delisting windows, and preserve
-              storefront history.
+    <main className="min-h-screen bg-[#15121b] pb-12">
+      <section className="mx-auto max-w-[1280px] space-y-10 px-6 py-10">
+        <header className="relative overflow-hidden border border-[#494454] bg-[#1d1a23] p-8 lg:p-10">
+          <div className="relative z-10 max-w-2xl space-y-5">
+            <p className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-[#d0bcff]">
+              Live Digital Archive
             </p>
+            <h1 className="text-4xl font-bold text-[#e7e0ed] lg:text-5xl">
+              Game Delistings Tracker
+            </h1>
+            <p className="max-w-xl text-[#cbc3d7]">
+              Monitor recently delisted games, upcoming removals, and long-term archive
+              records across major storefronts.
+            </p>
+            <SearchBar
+              className="max-w-xl"
+              placeholder="Search database for titles or platforms..."
+              onSearch={setSearchQuery}
+            />
           </div>
+          {heroImage ? (
+            <img
+              src={heroImage}
+              alt="Featured delisting artwork"
+              className="absolute right-10 top-1/2 hidden h-56 w-56 -translate-y-1/2 border border-[#494454] object-cover opacity-60 lg:block"
+            />
+          ) : null}
+          <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#d0bcff]/10 blur-3xl" />
+        </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatsCard label="Recently Delisted" value={data.stats.recent} />
-            <StatsCard label="Upcoming Delistings" value={data.stats.upcoming} />
-            <StatsCard label="Total Tracked Events" value={data.stats.total} />
-          </div>
-        </div>
-      </section>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatsCard
+            label="Recently Delisted"
+            value={data.stats.recent}
+            note="Past 30 days"
+            accent="primary"
+          />
+          <StatsCard
+            label="Upcoming Delistings"
+            value={data.stats.upcoming}
+            note="Announced windows"
+            accent="secondary"
+          />
+          <StatsCard
+            label="Total Archived Events"
+            value={data.stats.total}
+            note="Curated historical records"
+            accent="tertiary"
+          />
+        </section>
 
-      <section className="py-8 px-6 bg-[#0f1320]">
-        <div className="max-w-7xl mx-auto">
-          <SearchBar placeholder="Search by game or platform..." onSearch={setSearchQuery} />
-        </div>
-      </section>
-
-      <section className="py-12 px-6 bg-[#0f1320]">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-[#f4f6ff] mb-2">Recently Delisted</h2>
-            <p className="text-[#c9d0e8]">Latest removals from tracked storefronts.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRecent.map((game) => (
-              <GameCard key={game.id} {...game} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 px-6 bg-[#171d2e]">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-[#f4f6ff] mb-2">Upcoming Delistings</h2>
-            <p className="text-[#c9d0e8]">Games with announced or projected removals.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredUpcoming.map((game) => (
-              <GameCard key={game.id} {...game} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 px-6 bg-[#0f1320]">
-        <div className="max-w-7xl mx-auto">
-          <Card>
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-[#f4f6ff]">The Mortuary</h2>
-              <p className="text-[#c9d0e8]">
-                Browse the long-term archive of games that are no longer available for purchase.
-              </p>
-              <a
-                href="/mortuary"
-                className="inline-block px-6 py-3 bg-[#8b5cf6] text-white rounded-lg font-medium hover:bg-[#9d74ff] transition-colors"
+        <section className="space-y-3 border-b border-[#494454] pb-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-2 font-mono text-xs uppercase tracking-[0.1em] text-[#958ea0]">
+              Platform filter:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedPlatform("")}
+              className={`border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
+                selectedPlatform === ""
+                  ? "border-[#d0bcff] bg-[#d0bcff]/10 text-[#d0bcff]"
+                  : "border-[#494454] text-[#cbc3d7] hover:border-[#d0bcff] hover:text-[#d0bcff]"
+              }`}
+            >
+              All
+            </button>
+            {allPlatforms.map((platform) => (
+              <button
+                key={platform}
+                type="button"
+                onClick={() => setSelectedPlatform(platform)}
+                className={`border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors ${
+                  selectedPlatform === platform
+                    ? "border-[#d0bcff] bg-[#d0bcff]/10 text-[#d0bcff]"
+                    : "border-[#494454] text-[#cbc3d7] hover:border-[#d0bcff] hover:text-[#d0bcff]"
+                }`}
               >
-                Visit Mortuary →
-              </a>
-            </div>
-          </Card>
-        </div>
-      </section>
+                {platform}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <footer className="py-8 px-6 border-t border-[#2a3248] bg-[#0f1320]">
-        <div className="max-w-7xl mx-auto text-center text-[#95a0c3] text-sm">
-          <p>Game Delistings Tracker • IGDB metadata + curated delisting events</p>
-        </div>
-      </footer>
+        <section className="grid grid-cols-1 gap-10 xl:grid-cols-2">
+          <div>
+            <div className="mb-5 flex items-end justify-between border-b border-[#494454] pb-2">
+              <h2 className="text-2xl font-semibold text-[#e7e0ed]">Recently Delisted</h2>
+              <span className="font-mono text-xs uppercase tracking-[0.08em] text-[#958ea0]">
+                latest removals
+              </span>
+            </div>
+            {filteredRecent.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {filteredRecent.map((game) => (
+                  <GameCard key={game.id} {...game} />
+                ))}
+              </div>
+            ) : (
+              <Card hover={false}>
+                <p className="text-[#cbc3d7]">No recent delistings matched this filter.</p>
+              </Card>
+            )}
+          </div>
+
+          <div>
+            <div className="mb-5 flex items-end justify-between border-b border-[#494454] pb-2">
+              <h2 className="text-2xl font-semibold text-[#e7e0ed]">Upcoming Delistings</h2>
+              <span className="font-mono text-xs uppercase tracking-[0.08em] text-[#958ea0]">
+                watchlist
+              </span>
+            </div>
+            {filteredUpcoming.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {filteredUpcoming.map((game) => (
+                  <GameCard key={game.id} {...game} />
+                ))}
+              </div>
+            ) : (
+              <Card hover={false}>
+                <p className="text-[#cbc3d7]">No upcoming delistings matched this filter.</p>
+              </Card>
+            )}
+          </div>
+        </section>
+
+        <Card className="bg-[#1d1a23]">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-[#e7e0ed]">Explore the full archive</h2>
+              <p className="mt-1 text-[#cbc3d7]">
+                Dive into the timeline feed or open the long-term mortuary index.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/timeline"
+                className="border border-[#d0bcff] bg-[#d0bcff]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#d0bcff] transition-colors hover:bg-[#d0bcff]/20"
+              >
+                View Timeline
+              </Link>
+              <Link
+                href="/mortuary"
+                className="border border-[#494454] px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#cbc3d7] transition-colors hover:border-[#d0bcff] hover:text-[#d0bcff]"
+              >
+                Open Mortuary
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </section>
     </main>
   );
+}
+
+function filterGames<T extends { title: string; platforms: string[] }>(
+  games: T[],
+  query: string,
+  selectedPlatform: string
+) {
+  const normalizedQuery = query.trim().toLowerCase();
+  return games.filter((game) => {
+    const queryMatch =
+      !normalizedQuery ||
+      game.title.toLowerCase().includes(normalizedQuery) ||
+      game.platforms.some((platform) => platform.toLowerCase().includes(normalizedQuery));
+    const platformMatch =
+      !selectedPlatform ||
+      game.platforms.some((platform) => platform.toLowerCase() === selectedPlatform.toLowerCase());
+    return queryMatch && platformMatch;
+  });
 }

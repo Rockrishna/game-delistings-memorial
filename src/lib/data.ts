@@ -72,11 +72,11 @@ export async function getTimelineData({
         ...(search
           ? {
               OR: [
-                { name: { contains: search } },
-                { summary: { contains: search } },
+                { name: { contains: search, mode: "insensitive" as const } },
+                { summary: { contains: search, mode: "insensitive" as const } },
                 {
                   genres: {
-                    some: { genre: { name: { contains: search } } },
+                    some: { genre: { name: { contains: search, mode: "insensitive" as const } } },
                   },
                 },
               ],
@@ -132,10 +132,10 @@ export async function getMortuaryData(search?: string) {
         ? {
             is: {
               OR: [
-                { name: { contains: search } },
+                { name: { contains: search, mode: "insensitive" as const } },
                 {
                   genres: {
-                    some: { genre: { name: { contains: search } } },
+                    some: { genre: { name: { contains: search, mode: "insensitive" as const } } },
                   },
                 },
               ],
@@ -209,6 +209,7 @@ function mapTimelineItem(event: Prisma.DelistingEventGetPayload<{ include: typeo
     id: event.game.id,
     slug: event.game.slug,
     title: event.game.name,
+    coverUrl: event.game.coverUrl,
     platforms: event.game.platforms.map((platform) => platform.platform.name),
     platformBadges: event.game.platforms.map((platform) => asPlatformBadge(platform.platform.slug)),
     status: asStatus(event.type),

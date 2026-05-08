@@ -5,11 +5,13 @@ import { useState } from "react";
 interface SearchBarProps {
   onSearch?: (query: string) => void;
   placeholder?: string;
+  className?: string;
 }
 
 export default function SearchBar({
   onSearch,
   placeholder = "Search games...",
+  className = "",
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
 
@@ -20,16 +22,16 @@ export default function SearchBar({
   };
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <input
         type="text"
         value={query}
         onChange={handleChange}
         placeholder={placeholder}
-        className="w-full px-4 py-3 rounded-lg bg-[#171d2e] border border-[#2a3248] text-[#f4f6ff] placeholder-[#95a0c3] focus:border-[#8b5cf6] focus:outline-none transition-colors"
+        className="w-full border border-[#494454] bg-[#2c2832] px-11 py-3 font-mono text-sm text-[#e7e0ed] placeholder:text-[#958ea0] focus:border-[#d0bcff] focus:outline-none transition-colors"
       />
       <svg
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#95a0c3]"
+        className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#958ea0]"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

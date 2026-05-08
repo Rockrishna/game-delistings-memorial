@@ -98,7 +98,7 @@ export async function fetchIGDBGamesByIds(ids: number[]) {
     return [];
   }
 
-  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.name,platforms.abbreviation,platforms.slug,genres.name,genres.slug; where id = (${ids.join(
+  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.id,platforms.name,platforms.abbreviation,platforms.slug,genres.id,genres.name,genres.slug; where id = (${ids.join(
     ","
   )}); limit ${ids.length};`;
 

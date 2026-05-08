@@ -1,29 +1,30 @@
 interface StatsCardProps {
   label: string;
   value: string | number;
-  trend?: "up" | "down";
+  note?: string;
+  accent?: "primary" | "secondary" | "tertiary";
 }
 
-export default function StatsCard({ label, value, trend }: StatsCardProps) {
+const accentClasses = {
+  primary: "border-[#d0bcff] text-[#d0bcff]",
+  secondary: "border-[#89ceff] text-[#89ceff]",
+  tertiary: "border-[#ffb869] text-[#ffb869]",
+};
+
+export default function StatsCard({
+  label,
+  value,
+  note,
+  accent = "primary",
+}: StatsCardProps) {
   return (
-    <div className="bg-[#171d2e] border border-[#2a3248] rounded-lg p-6">
-      <p className="text-[#95a0c3] text-sm font-medium uppercase tracking-wider mb-2">
+    <div className="border border-[#494454] bg-[#211e27] p-5">
+      <div className={`mb-3 h-1 w-14 border-b-2 ${accentClasses[accent]}`} />
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#958ea0]">
         {label}
       </p>
-      <div className="flex items-end gap-2">
-        <h3 className="text-4xl font-bold text-[#f4f6ff]">{value}</h3>
-        {trend && (
-          <span
-            className={`text-sm font-medium px-2 py-1 rounded ${
-              trend === "up"
-                ? "bg-green-500/20 text-[#22c55e]"
-                : "bg-yellow-500/20 text-[#f59e0b]"
-            }`}
-          >
-            {trend === "up" ? "↑" : "↓"}
-          </span>
-        )}
-      </div>
+      <h3 className={`font-mono text-4xl font-bold ${accentClasses[accent].split(" ")[1]}`}>{value}</h3>
+      {note ? <p className="mt-2 text-xs text-[#cbc3d7]">{note}</p> : null}
     </div>
   );
 }

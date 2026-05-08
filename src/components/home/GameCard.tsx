@@ -25,34 +25,38 @@ export default function GameCard({
   status,
   sourceUrl,
 }: GameCardProps) {
+  const formattedDate = new Date(delistDate).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
   return (
     <Link href={`/games/${slug ?? id}`}>
-      <div className="group bg-[#171d2e] border border-[#2a3248] rounded-lg overflow-hidden hover:border-[#8b5cf6] hover:shadow-lg transition-all cursor-pointer h-full">
-        {/* Cover Art */}
-        <div className="relative aspect-video bg-[#20283d] overflow-hidden">
+      <div className="group flex h-full cursor-pointer flex-col overflow-hidden border border-[#494454] bg-[#211e27] transition-colors hover:border-[#d0bcff]">
+        <div className="relative aspect-video overflow-hidden bg-[#2c2832]">
           {coverUrl ? (
             <img
               src={coverUrl}
               alt={title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              className="h-full w-full object-cover grayscale transition-all duration-500 group-hover:scale-[1.03] group-hover:grayscale-0"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#95a0c3]">
+            <div className="flex h-full w-full items-center justify-center text-[#958ea0]">
               No Image
             </div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-3">
-          <div>
-            <h3 className="text-[#f4f6ff] font-semibold line-clamp-2 group-hover:text-[#8b5cf6] transition-colors">
+        <div className="flex flex-1 flex-col gap-3 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="line-clamp-2 text-base font-semibold text-[#e7e0ed] transition-colors group-hover:text-[#d0bcff]">
               {title}
             </h3>
+            <Badge label={status} variant={status} />
           </div>
 
-          {/* Platforms */}
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {platforms.map((platform, index) => (
               <Badge
                 key={`${platform}-${index}`}
@@ -62,26 +66,22 @@ export default function GameCard({
             ))}
           </div>
 
-          {/* Date & Status */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#2a3248]">
-            <span className="text-xs text-[#95a0c3]">
-              {new Date(delistDate).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
+          <div className="mt-auto flex items-center justify-between border-t border-[#494454] pt-3">
+            <span className="font-mono text-xs uppercase tracking-[0.06em] text-[#958ea0]">
+              {formattedDate}
             </span>
-            <Badge label={status} variant={status} />
+            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#d0bcff]">
+              View Details
+            </span>
           </div>
 
-          {/* CTA */}
           {sourceUrl && (
             <a
               href={sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-xs text-[#8b5cf6] hover:text-[#9d74ff] underline"
+              className="text-xs uppercase tracking-[0.06em] text-[#89ceff] underline-offset-2 hover:underline"
             >
               View Source
             </a>

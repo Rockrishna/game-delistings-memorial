@@ -3,12 +3,25 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { fetchIGDBGamesByIds } from "@/lib/igdb";
 
+export const maxDuration = 60;
+
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 }
 
+export async function GET() {
+  return NextResponse.json({
+    configured: {
+      IGDB_CLIENT_ID: !!env.IGDB_CLIENT_ID,
+      IGDB_CLIENT_SECRET: !!env.IGDB_CLIENT_SECRET,
+      INGEST_API_KEY: !!env.INGEST_API_KEY,
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   if (!env.INGEST_API_KEY) {
+    console.error("[ingest/igdb] INGEST_API_KEY is not configured");
     return NextResponse.json({ error: "INGEST_API_KEY is not configured." }, { status: 500 });
   }
 
@@ -25,6 +38,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const games = await fetchIGDBGamesByIds(ids);
+    console.log(`[ingest/igdb] Fetched ${games.length} games from IGDB for ids: ${ids.join(",")}`);
 
     for (const item of games) {
       const game = await prisma.game.upsert({
@@ -57,22 +71,19 @@ export async function POST(request: NextRequest) {
         const dbPlatform = await prisma.platform.upsert({
           where: { slug: platform.slug },
           update: {
-            igdbId: platform.igdbId,
+            igdbId: platform.igdbId ?? null,
             name: platform.name,
             abbreviation: platform.abbreviation,
           },
           create: {
-            igdbId: platform.igdbId,
+            igdbId: platform.igdbId ?? null,
             slug: platform.slug,
             name: platform.name,
             abbreviation: platform.abbreviation,
           },
         });
         await prisma.gamePlatform.create({
-          data: {
-            gameId: game.id,
-            platformId: dbPlatform.id,
-          },
+          data: { gameId: game.id, platformId: dbPlatform.id },
         });
       }
 
@@ -80,26 +91,25 @@ export async function POST(request: NextRequest) {
         const dbGenre = await prisma.genre.upsert({
           where: { slug: genre.slug },
           update: {
-            igdbId: genre.igdbId,
+            igdbId: genre.igdbId ?? null,
             name: genre.name,
           },
           create: {
-            igdbId: genre.igdbId,
+            igdbId: genre.igdbId ?? null,
             slug: genre.slug,
             name: genre.name,
           },
         });
         await prisma.gameGenre.create({
-          data: {
-            gameId: game.id,
-            genreId: dbGenre.id,
-          },
+          data: { gameId: game.id, genreId: dbGenre.id },
         });
       }
     }
 
+    console.log(`[ingest/igdb] Successfully ingested ${games.length} games`);
     return NextResponse.json({ ok: true, ingested: games.length });
   } catch (error) {
+    console.error("[ingest/igdb] Ingestion failed:", (error as Error).message, (error as Error).stack);
     return NextResponse.json(
       { error: "IGDB ingestion failed.", details: (error as Error).message },
       { status: 500 }

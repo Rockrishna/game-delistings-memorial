@@ -13,18 +13,18 @@ interface BadgeProps {
 }
 
 const statusColors: Record<StatusType, string> = {
-  recent: "bg-yellow-500/20 text-[#f59e0b] border border-yellow-500/50",
-  upcoming: "bg-blue-500/20 text-[#60a5fa] border border-blue-500/50",
-  delisted: "bg-red-500/20 text-[#ef4444] border border-red-500/50",
+  recent: "bg-emerald-500/15 text-[#6ee7b7] border border-emerald-500/40",
+  upcoming: "bg-amber-500/15 text-[#fbbf24] border border-amber-500/40",
+  delisted: "bg-red-500/15 text-[#f87171] border border-red-500/40",
 };
 
 const platformColors: Record<PlatformType, string> = {
-  steam: "bg-blue-400/20 text-[#66c0f4] border border-blue-400/50",
-  playstation: "bg-blue-600/20 text-[#2d6cff] border border-blue-600/50",
-  xbox: "bg-green-600/20 text-[#107c10] border border-green-600/50",
-  nintendo: "bg-red-600/20 text-[#e60012] border border-red-600/50",
-  epic: "bg-gray-300/20 text-[#ffffff] border border-gray-300/50",
-  default: "bg-[#2a3248]/20 text-[#95a0c3] border border-[#2a3248]",
+  steam: "bg-[#66c0f4]/10 text-[#66c0f4] border border-[#66c0f4]/40",
+  playstation: "bg-[#2d6cff]/10 text-[#79a1ff] border border-[#2d6cff]/45",
+  xbox: "bg-[#107c10]/15 text-[#63d263] border border-[#107c10]/50",
+  nintendo: "bg-[#e60012]/10 text-[#ff7079] border border-[#e60012]/45",
+  epic: "bg-white/10 text-[#f4f6ff] border border-white/30",
+  default: "bg-[#211e27] text-[#cbc3d7] border border-[#494454]",
 };
 
 export default function Badge({ label, variant = "default" }: BadgeProps) {
@@ -34,7 +34,9 @@ export default function Badge({ label, variant = "default" }: BadgeProps) {
     platformColors.default;
 
   return (
-    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${colors}`}>
+    <span
+      className={`inline-block rounded px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] ${colors}`}
+    >
       {label}
     </span>
   );

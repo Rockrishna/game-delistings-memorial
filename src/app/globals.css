@@ -9,7 +9,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #121826, #07090e 52%);
-  color: #f4f6ff;
-  font-family: Inter, Segoe UI, system-ui, sans-serif;
+  background: radial-gradient(circle at top, #211e27 0%, #15121b 38%, #0f0d15 100%);
+  color: #e7e0ed;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
 }
