@@ -1,4 +1,3 @@
-import apicalypse from "apicalypse";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
@@ -66,20 +65,6 @@ const GAME_FIELDS = [
   "genres.name",
   "genres.slug",
 ];
-
-async function igdbApiClient() {
-  const token = await getAccessToken();
-  return apicalypse({
-    baseURL: IGDB_API_URL,
-    method: "POST",
-    headers: {
-      "Client-ID": env.IGDB_CLIENT_ID!,
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "text/plain",
-    },
-    queryMethod: "body",
-  });
-}
 
 function imageUrlFromId(imageId: string, size = "t_cover_big") {
   return `https://images.igdb.com/igdb/image/upload/${size}/${imageId}.jpg`;
@@ -207,31 +192,38 @@ async function cachedRequest<T>(opts: {
 }
 
 /**
- * Build an apicalypse query body via the typed builder, then run it through
- * the cache. Caller passes the cacheKey so identical calls dedupe.
- *
- * The apicalypse Builder only writes the composed query string to its
- * `apicalypse` field when `.build()` is called explicitly — without it
- * the body is the empty string and IGDB silently returns default rows
- * (10 records, id field only). We always call .build() and assert the
- * body is non-empty before issuing the request.
+ * Compose an apicalypse query body manually. The Builder in the apicalypse
+ * package strips whitespace inside `fields` lists and IGDB v4's parser then
+ * rejects the comma-joined result with a 400 ("Expecting `EOF`, `;`, found
+ * `,foo,bar`"). Manual composition with explicit `, ` separators sidesteps
+ * the issue and keeps the apicalypse import for typing only.
  */
+type QueryParts = {
+  fields?: string[];
+  where?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+};
+
+function composeApicalypse(parts: QueryParts): string {
+  const lines: string[] = [];
+  if (parts.fields && parts.fields.length) lines.push(`fields ${parts.fields.join(", ")};`);
+  if (parts.search) lines.push(`search "${parts.search.replace(/"/g, '\\"')}";`);
+  if (parts.where) lines.push(`where ${parts.where};`);
+  if (typeof parts.limit === "number") lines.push(`limit ${parts.limit};`);
+  if (typeof parts.offset === "number" && parts.offset > 0) lines.push(`offset ${parts.offset};`);
+  return lines.join(" ");
+}
+
 async function buildAndQuery<T>(
   endpoint: string,
   cacheKey: string,
   ttlMs: number,
-  build: (
-    client: Awaited<ReturnType<typeof igdbApiClient>>
-  ) => Awaited<ReturnType<typeof igdbApiClient>>
+  parts: QueryParts
 ): Promise<T[]> {
-  const client = await igdbApiClient();
-  // The Builder's `apicalypse` field is protected at the TS level but is
-  // populated by .build() and accessed at runtime. Cast through unknown.
-  const built = build(client).build() as unknown as { apicalypse: string };
-  const body = built.apicalypse;
-  if (!body) {
-    throw new Error(`apicalypse builder produced empty body for ${endpoint}`);
-  }
+  const body = composeApicalypse(parts);
+  if (!body) throw new Error(`empty apicalypse body for ${endpoint}`);
   const { rows } = await cachedRequest<T>({ cacheKey, endpoint, body, ttlMs });
   return rows;
 }
@@ -241,7 +233,7 @@ export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDB
     "games",
     `games:search:${name.toLowerCase()}`,
     THIRTY_DAYS_MS,
-    (c) => c.fields(GAME_FIELDS).search(name).limit(5)
+    { fields: GAME_FIELDS, search: name, limit: 5 }
   );
   if (!rows.length) return null;
   const lower = name.toLowerCase();
@@ -256,11 +248,11 @@ export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDB
     "games",
     `games:ids:${sortedIds.join(",")}`,
     THIRTY_DAYS_MS,
-    (c) =>
-      c
-        .fields(GAME_FIELDS)
-        .where(`id = (${sortedIds.join(",")})`)
-        .limit(sortedIds.length)
+    {
+      fields: GAME_FIELDS,
+      where: `id = (${sortedIds.join(",")})`,
+      limit: sortedIds.length,
+    }
   );
   return rows.map(normalizeRow);
 }
@@ -274,7 +266,7 @@ export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
     "game_statuses",
     "game_statuses:all",
     THIRTY_DAYS_MS,
-    (c) => c.fields(["name", "description", "checksum"]).limit(50)
+    { fields: ["name", "description", "checksum"], limit: 50 }
   );
 }
 
@@ -317,12 +309,12 @@ export async function fetchGamesByStatus(opts: {
     "games",
     `games:status:${sorted.join(",")}:o${offset}:l${limit}`,
     7 * ONE_DAY_MS,
-    (c) =>
-      c
-        .fields([...GAME_FIELDS, "status", "updated_at"])
-        .where(`status = (${sorted.join(",")})`)
-        .limit(limit)
-        .offset(offset)
+    {
+      fields: [...GAME_FIELDS, "status", "updated_at"],
+      where: `status = (${sorted.join(",")})`,
+      limit,
+      offset,
+    }
   );
 
   const rawUpdatedAt = new Map<number, number>();
