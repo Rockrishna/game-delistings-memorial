@@ -171,7 +171,13 @@ async function cachedRequest<T>(opts: {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(`IGDB query failed (${response.status}) for ${endpoint}`);
+    const responseBody = await response.text().catch(() => "<no body>");
+    console.error(
+      `[igdb] ${endpoint} FAILED status=${response.status} body=${body} response=${responseBody.slice(0, 500)}`
+    );
+    throw new Error(
+      `IGDB query failed (${response.status}) for ${endpoint}: ${responseBody.slice(0, 200)}`
+    );
   }
   const rows = (await response.json()) as T[];
 
