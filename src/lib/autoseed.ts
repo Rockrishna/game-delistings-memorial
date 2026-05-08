@@ -1,7 +1,7 @@
 import { DelistingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { searchIGDBGameByName } from "@/lib/igdb";
+import { searchGameWithCache } from "@/lib/igdb-cache";
 
 type CuratedEntry = {
   name: string;
@@ -68,10 +68,13 @@ export async function ensureSeeded(): Promise<void> {
       let inserted = 0;
       for (const entry of CURATED) {
         try {
-          const igdb = await searchIGDBGameByName(entry.name);
+          const igdb = await searchGameWithCache(entry.name, entry.type);
           if (!igdb) {
             console.log(`[autoseed] - ${entry.name}: not found in IGDB`);
             continue;
+          }
+          if (igdb.fromCache) {
+            console.log(`[autoseed] = ${entry.name}: cached (igdb=${igdb.igdbId})`);
           }
           const game = await prisma.game.upsert({
             where: { igdbId: igdb.igdbId },

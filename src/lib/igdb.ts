@@ -1,3 +1,4 @@
+import apicalypse from "apicalypse";
 import { env } from "@/lib/env";
 
 const TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token";
@@ -37,10 +38,7 @@ async function getAccessToken() {
     throw new Error(`Failed to obtain Twitch token (${response.status}).`);
   }
 
-  const payload = (await response.json()) as {
-    access_token: string;
-    expires_in: number;
-  };
+  const payload = (await response.json()) as { access_token: string; expires_in: number };
   tokenCache = {
     value: payload.access_token,
     expiresAt: Date.now() + (payload.expires_in - 120) * 1000,
@@ -48,24 +46,35 @@ async function getAccessToken() {
   return payload.access_token;
 }
 
-export async function queryIGDB<T>(endpoint: string, body: string): Promise<T[]> {
+const GAME_FIELDS = [
+  "name",
+  "slug",
+  "summary",
+  "first_release_date",
+  "rating",
+  "cover.image_id",
+  "artworks.image_id",
+  "platforms.id",
+  "platforms.name",
+  "platforms.abbreviation",
+  "platforms.slug",
+  "genres.id",
+  "genres.name",
+  "genres.slug",
+];
+
+async function igdbClient() {
   const token = await getAccessToken();
-  const response = await fetch(`${IGDB_API_URL}/${endpoint}`, {
+  return apicalypse({
+    baseURL: IGDB_API_URL,
     method: "POST",
     headers: {
       "Client-ID": env.IGDB_CLIENT_ID!,
       Authorization: `Bearer ${token}`,
       "Content-Type": "text/plain",
     },
-    body,
-    cache: "no-store",
+    queryMethod: "body",
   });
-
-  if (!response.ok) {
-    throw new Error(`IGDB query failed (${response.status}) for ${endpoint}.`);
-  }
-
-  return (await response.json()) as T[];
 }
 
 function imageUrlFromId(imageId: string, size = "t_cover_big") {
@@ -93,18 +102,7 @@ function toSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDBGame | null> {
-  const escaped = name.replace(/"/g, '\\"');
-  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.id,platforms.name,platforms.abbreviation,platforms.slug,genres.id,genres.name,genres.slug; search "${escaped}"; limit 5;`;
-  const rows = await queryIGDB<IGDBGame>("games", query);
-  if (!rows.length) return null;
-  // Prefer the row that matches title exactly (case-insensitive); fall back to first.
-  const lower = name.toLowerCase();
-  const exact = rows.find((row) => row.name.toLowerCase() === lower);
-  return mapIGDBRow(exact ?? rows[0]);
-}
-
-function mapIGDBRow(row: IGDBGame): NormalizedIGDBGame {
+function normalizeRow(row: IGDBGame): NormalizedIGDBGame {
   return {
     igdbId: row.id,
     slug: row.slug || toSlug(row.name),
@@ -130,37 +128,28 @@ function mapIGDBRow(row: IGDBGame): NormalizedIGDBGame {
   };
 }
 
-export async function fetchIGDBGamesByIds(ids: number[]) {
-  if (!ids.length) {
-    return [];
-  }
+export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDBGame | null> {
+  const client = await igdbClient();
+  const response = await client
+    .fields(GAME_FIELDS)
+    .search(name)
+    .limit(5)
+    .request("/games");
+  const rows = (response.data ?? []) as IGDBGame[];
+  if (!rows.length) return null;
+  const lower = name.toLowerCase();
+  const exact = rows.find((row) => row.name.toLowerCase() === lower);
+  return normalizeRow(exact ?? rows[0]);
+}
 
-  const query = `fields name,slug,summary,first_release_date,rating,cover.image_id,artworks.image_id,platforms.id,platforms.name,platforms.abbreviation,platforms.slug,genres.id,genres.name,genres.slug; where id = (${ids.join(
-    ","
-  )}); limit ${ids.length};`;
-
-  const rows = await queryIGDB<IGDBGame>("games", query);
-  return rows.map<NormalizedIGDBGame>((row) => ({
-    igdbId: row.id,
-    slug: row.slug || toSlug(row.name),
-    name: row.name,
-    summary: row.summary,
-    firstReleaseAt: row.first_release_date
-      ? new Date(row.first_release_date * 1000)
-      : undefined,
-    rating: row.rating,
-    coverUrl: row.cover?.image_id ? imageUrlFromId(row.cover.image_id) : undefined,
-    artworkUrls: (row.artworks ?? []).map((art) => imageUrlFromId(art.image_id, "t_screenshot_huge")),
-    platforms: (row.platforms ?? []).map((platform) => ({
-      igdbId: platform.id,
-      name: platform.name,
-      abbreviation: platform.abbreviation,
-      slug: platform.slug || toSlug(platform.name),
-    })),
-    genres: (row.genres ?? []).map((genre) => ({
-      igdbId: genre.id,
-      name: genre.name,
-      slug: genre.slug || toSlug(genre.name),
-    })),
-  }));
+export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDBGame[]> {
+  if (!ids.length) return [];
+  const client = await igdbClient();
+  const response = await client
+    .fields(GAME_FIELDS)
+    .where(`id = (${ids.join(",")})`)
+    .limit(ids.length)
+    .request("/games");
+  const rows = (response.data ?? []) as IGDBGame[];
+  return rows.map(normalizeRow);
 }

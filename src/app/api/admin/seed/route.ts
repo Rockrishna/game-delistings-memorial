@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { DelistingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { searchIGDBGameByName, type NormalizedIGDBGame } from "@/lib/igdb";
+import { type NormalizedIGDBGame } from "@/lib/igdb";
+import { searchGameWithCache } from "@/lib/igdb-cache";
 
 export const maxDuration = 300;
 
@@ -255,10 +256,10 @@ export async function POST(request: NextRequest) {
 
   await ensureCorePlatformsAndGenres();
 
-  const summary: Array<{ name: string; status: string; igdbId?: number }> = [];
+  const summary: Array<{ name: string; status: string; igdbId?: number; cached?: boolean }> = [];
   for (const entry of CURATED) {
     try {
-      const igdb = await searchIGDBGameByName(entry.name);
+      const igdb = await searchGameWithCache(entry.name, entry.type);
       if (!igdb) {
         summary.push({ name: entry.name, status: "not_found_in_igdb" });
         continue;
@@ -274,7 +275,12 @@ export async function POST(request: NextRequest) {
           sourceUrl: entry.sourceUrl ?? null,
         },
       });
-      summary.push({ name: entry.name, status: "ok", igdbId: igdb.igdbId });
+      summary.push({
+        name: entry.name,
+        status: "ok",
+        igdbId: igdb.igdbId,
+        cached: igdb.fromCache,
+      });
     } catch (error) {
       summary.push({ name: entry.name, status: `error: ${(error as Error).message}` });
     }
