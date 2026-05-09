@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Playfair_Display, Crimson_Pro, Special_Elite } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/layout/Header";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import ThemeProvider from "@/components/layout/ThemeProvider";
@@ -56,6 +57,7 @@ export default function RootLayout({
           </footer>
           <ScrollToTop />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
