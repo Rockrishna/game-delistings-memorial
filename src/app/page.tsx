@@ -40,9 +40,9 @@ type HomePayload = {
   stats: {
     total: number;
     recent: number;
+    last30Days: number;
     topPlatform: string;
     topGenre: string;
-    oldestYear: number | null;
     averageRating: number | null;
     gamesWithMetadata: number;
     platformsTracked: number;
@@ -126,6 +126,20 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-[1280px] bg-[color:var(--paper)] pb-16">
+      {/* Hero search — first interactive element after the navbar */}
+      <div className="border-x border-[color:var(--ink)] bg-[color:var(--paper-2)] px-6 py-5">
+        <div className="mx-auto max-w-2xl">
+          <p className="mb-2 text-center font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
+            Find a delisted game
+          </p>
+          <SearchBar
+            placeholder="Search titles, platforms, or genres…"
+            onSearch={setSearchQuery}
+            initialValue={searchQuery}
+          />
+        </div>
+      </div>
+
       <section className="border-x border-b border-[color:var(--ink)]">
         {/* Above the fold */}
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_280px]">
@@ -300,8 +314,9 @@ export default function HomePage() {
             value={data.stats.averageRating != null ? `${data.stats.averageRating} / 100` : "—"}
           />
           <StatsBlock
-            label="Oldest entry"
-            value={data.stats.oldestYear != null ? String(data.stats.oldestYear) : "—"}
+            label="Last 30 days"
+            value={data.stats.last30Days.toLocaleString()}
+            note="New delistings"
           />
           <StatsBlock label="Top genre" value={data.stats.topGenre} />
           <StatsBlock label="Most affected" value={data.stats.topPlatform} />
@@ -337,17 +352,8 @@ export default function HomePage() {
           />
         </div>
 
-        {/* Search bar */}
-        <div className="border-t-[3px] border-double border-[color:var(--ink)] px-6 py-5">
-          <SearchBar
-            placeholder="Search titles…"
-            onSearch={setSearchQuery}
-            initialValue={searchQuery}
-          />
-        </div>
-
         {/* Recently delisted */}
-        <div className="border-t border-[color:var(--rule)] px-6 py-8">
+        <div className="border-t-[3px] border-double border-[color:var(--ink)] px-6 py-8">
           <p className="text-center font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
             Recently delisted
           </p>

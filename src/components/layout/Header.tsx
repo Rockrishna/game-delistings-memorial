@@ -56,16 +56,16 @@ export default function Header() {
       </div>
 
       <nav className="border-t border-[color:var(--rule)] bg-[color:var(--paper-2)]">
-        <ul className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-center gap-x-7 gap-y-2 px-6 py-2 font-serif text-[13px] uppercase tracking-[0.16em]">
+        <ul className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-center gap-x-9 gap-y-2 px-6 py-4 font-serif text-[15px] uppercase tracking-[0.18em] sm:text-[16px]">
           {NAV_ITEMS.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`pb-0.5 transition-colors ${
+                  className={`pb-1 transition-colors ${
                     active
-                      ? "font-bold text-[color:var(--accent)]"
+                      ? "border-b-2 border-[color:var(--accent)] font-bold text-[color:var(--accent)]"
                       : "text-[color:var(--ink-2)] hover:text-[color:var(--accent)]"
                   }`}
                 >

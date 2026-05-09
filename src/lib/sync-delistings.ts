@@ -28,7 +28,9 @@ export type SyncSummary = {
  * Every IGDB call is routed through the IgdbRequest cache table so a re-run
  * is a no-op at the API boundary.
  */
-export async function syncDelistedFromIGDB(): Promise<SyncSummary> {
+export async function syncDelistedFromIGDB(opts?: {
+  since?: number;
+}): Promise<SyncSummary> {
   const summary: SyncSummary = {
     matchedStatuses: [],
     pagesFetched: 0,
@@ -55,6 +57,7 @@ export async function syncDelistedFromIGDB(): Promise<SyncSummary> {
       statusIds,
       offset,
       limit: PAGE_SIZE,
+      since: opts?.since,
     });
     summary.pagesFetched += 1;
     summary.gamesSeen += games.length;

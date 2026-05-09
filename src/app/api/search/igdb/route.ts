@@ -159,11 +159,18 @@ export async function POST(request: NextRequest) {
     where: { gameId: game.id, type: DelistingType.DELISTED },
   });
   if (!existingEvent) {
+    // Use IGDB's updated_at (when the row's status was last revised) as
+    // the delist date — same proxy the bulk sync uses. Falling back to
+    // "now" only when IGDB withholds a timestamp; otherwise we'd stamp
+    // every search-added title with today's date, which is wrong.
+    const delistDate = igdb.updatedAtSeconds
+      ? new Date(igdb.updatedAtSeconds * 1000)
+      : new Date();
     await prisma.delistingEvent.create({
       data: {
         gameId: game.id,
         type: DelistingType.DELISTED,
-        delistDate: new Date(),
+        delistDate,
         reason: "Marked offline/delisted by IGDB.",
         sourceUrl: `https://www.igdb.com/games/${igdb.slug}`,
       },

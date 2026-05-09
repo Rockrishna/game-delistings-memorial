@@ -99,13 +99,15 @@ const eventInclude = {
 } satisfies Prisma.DelistingEventInclude;
 
 export async function getHomePageData() {
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
   const [
     recent,
     lead,
     totalEvents,
+    last30DaysCount,
     allEvents,
     ratingAgg,
-    oldestGame,
     topRatedRows,
     gamesWithMetadata,
     platformsTracked,
@@ -124,6 +126,12 @@ export async function getHomePageData() {
       orderBy: { delistDate: "desc" },
     }),
     prisma.delistingEvent.count(),
+    prisma.delistingEvent.count({
+      where: {
+        type: DelistingType.DELISTED,
+        delistDate: { gte: thirtyDaysAgo },
+      },
+    }),
     prisma.delistingEvent.findMany({
       where: { type: DelistingType.DELISTED },
       include: { game: { include: { platforms: { include: { platform: true } } } } },
@@ -131,11 +139,6 @@ export async function getHomePageData() {
     prisma.game.aggregate({
       where: { rating: { not: null } },
       _avg: { rating: true },
-    }),
-    prisma.game.findFirst({
-      where: { firstReleaseAt: { not: null } },
-      orderBy: { firstReleaseAt: "asc" },
-      select: { firstReleaseAt: true, name: true, slug: true },
     }),
     // Top-rated delisted games to feature on the home page
     prisma.delistingEvent.findMany({
@@ -170,16 +173,15 @@ export async function getHomePageData() {
 
   const topPlatform = topEntry(platformCounts) ?? "—";
   const topGenre = topEntry(genreCounts) ?? "—";
-  const oldestYear = oldestGame?.firstReleaseAt?.getUTCFullYear() ?? null;
   const averageRating = ratingAgg._avg.rating ? Math.round(ratingAgg._avg.rating) : null;
 
   return {
     stats: {
       total: totalEvents,
       recent: recent.length,
+      last30Days: last30DaysCount,
       topPlatform,
       topGenre,
-      oldestYear,
       averageRating,
       gamesWithMetadata,
       platformsTracked,

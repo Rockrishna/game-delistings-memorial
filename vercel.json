@@ -1,4 +1,10 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run prisma:migrate && npm run build"
+  "buildCommand": "npm run prisma:migrate && npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/sync-delistings",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

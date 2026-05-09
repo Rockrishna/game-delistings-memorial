@@ -8,6 +8,7 @@ const serverEnvSchema = z.object({
   IGDB_CLIENT_SECRET: z.string().optional(),
   IGDB_WEBHOOK_SECRET: z.string().optional(),
   INGEST_API_KEY: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
 });
 
 export const env = serverEnvSchema.parse({
@@ -18,4 +19,5 @@ export const env = serverEnvSchema.parse({
   IGDB_CLIENT_SECRET: process.env.IGDB_CLIENT_SECRET,
   IGDB_WEBHOOK_SECRET: process.env.IGDB_WEBHOOK_SECRET,
   INGEST_API_KEY: process.env.INGEST_API_KEY,
+  CRON_SECRET: process.env.CRON_SECRET,
 });

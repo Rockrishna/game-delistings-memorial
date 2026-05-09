@@ -243,7 +243,7 @@ async function buildAndQuery<T>(
  *   > exact-name > first row.
  */
 export async function searchIGDBGameByName(name: string): Promise<
-  (NormalizedIGDBGame & { status?: number }) | null
+  (NormalizedIGDBGame & { status?: number; updatedAtSeconds?: number }) | null
 > {
   const rows = await buildAndQuery<IGDBGame>(
     "games",
@@ -263,10 +263,12 @@ export async function searchIGDBGameByName(name: string): Promise<
   const anyDelisted = rows.find(isDelisted);
   const exact = rows.find((row) => row.name.toLowerCase() === lower);
   const row = exactDelisted ?? anyDelisted ?? exact ?? rows[0];
-  return { ...normalizeRow(row), status: row.status };
+  return { ...normalizeRow(row), status: row.status, updatedAtSeconds: row.updated_at };
 }
 
-export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDBGame[]> {
+export async function fetchIGDBGamesByIds(
+  ids: number[]
+): Promise<Array<NormalizedIGDBGame & { status?: number; updatedAtSeconds?: number }>> {
   if (!ids.length) return [];
   const sortedIds = [...ids].sort((a, b) => a - b);
   const rows = await buildAndQuery<IGDBGame>(
@@ -279,7 +281,11 @@ export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDB
       limit: sortedIds.length,
     }
   );
-  return rows.map(normalizeRow);
+  return rows.map((row) => ({
+    ...normalizeRow(row),
+    status: row.status,
+    updatedAtSeconds: row.updated_at,
+  }));
 }
 
 /**
@@ -341,23 +347,37 @@ export async function getDelistedStatusIds(): Promise<{
 /**
  * Page through /v4/games filtered to a set of status IDs. Each page is
  * cached separately so resuming a partial sync doesn't re-bill IGDB.
+ *
+ * `since` (UNIX seconds) narrows the query to games whose `updated_at`
+ * has changed after that timestamp — used by the daily cron to fetch
+ * only newly-flagged delistings instead of paging the whole set.
  */
 export async function fetchGamesByStatus(opts: {
   statusIds: number[];
   offset: number;
   limit: number;
+  since?: number;
 }): Promise<{ games: NormalizedIGDBGame[]; rawUpdatedAt: Map<number, number> }> {
-  const { statusIds, offset, limit } = opts;
+  const { statusIds, offset, limit, since } = opts;
   if (!statusIds.length) return { games: [], rawUpdatedAt: new Map() };
   const sorted = [...statusIds].sort((a, b) => a - b);
 
+  const whereClauses = [`status = (${sorted.join(",")})`];
+  if (typeof since === "number" && since > 0) {
+    whereClauses.push(`updated_at > ${Math.floor(since)}`);
+  }
+  // Cache key bakes in the since cursor so two cron runs starting at
+  // different timestamps stay separate (and a fresh full sync always
+  // bypasses incremental cache rows).
+  const cacheKey = `games:status:${sorted.join(",")}${since ? `:since${Math.floor(since)}` : ""}:o${offset}:l${limit}`;
+
   const rows = await buildAndQuery<IGDBGame>(
     "games",
-    `games:status:${sorted.join(",")}:o${offset}:l${limit}`,
+    cacheKey,
     7 * ONE_DAY_MS,
     {
       fields: [...GAME_FIELDS, "status", "updated_at"],
-      where: `status = (${sorted.join(",")})`,
+      where: whereClauses.join(" & "),
       limit,
       offset,
     }
