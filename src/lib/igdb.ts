@@ -268,34 +268,49 @@ export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDB
  * rarely changes — caches for 30 days.
  */
 export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
+  // `fields *` returns every available column on the row regardless of what
+  // the schema is documented to contain — IGDB v4 game_statuses doesn't
+  // expose `name` or `description`, only id + checksum, so we let the API
+  // tell us what's there.
   return buildAndQuery<IGDBGameStatus>(
     "game_statuses",
     "game_statuses:all",
     THIRTY_DAYS_MS,
-    { fields: ["description", "checksum"], limit: 50 }
+    { fields: ["*"], limit: 50 }
   );
 }
 
 /**
- * Find the IGDB game_status IDs whose name or description identifies the
- * record as "delisted" or "offline" — the two states that mean a game has
- * been pulled from sale. Returns the integer IDs to plug into a games-where
- * filter.
+ * IGDB v4 game-status enum IDs that mean "no longer for sale". Confirmed
+ * from a successful listGameStatuses query earlier (id 2 = Offline,
+ * id 7 = Delisted). The /v4/game_statuses endpoint exposes only `id` and
+ * `checksum` — there's no public field that names each row — so we keep
+ * these hardcoded rather than rediscovering them on every sync.
  */
+const DELISTED_STATUS_IDS: Array<{ id: number; label: string }> = [
+  { id: 2, label: "Offline" },
+  { id: 7, label: "Delisted" },
+];
+
 export async function getDelistedStatusIds(): Promise<{
   ids: number[];
   matched: Array<{ id: number; label: string }>;
   all: IGDBGameStatus[];
 }> {
-  const all = await listGameStatuses();
-  const matched: Array<{ id: number; label: string }> = [];
-  for (const status of all) {
-    const label = (status.description || "").toLowerCase();
-    if (/delist|offline|removed|pulled|withdrawn/.test(label)) {
-      matched.push({ id: status.id, label: status.description || `#${status.id}` });
-    }
+  // Best-effort: still query game_statuses so the cache table records that
+  // we considered it; ignore failures (the endpoint sometimes 400s when
+  // querying any non-id field, depending on IGDB API version).
+  let all: IGDBGameStatus[] = [];
+  try {
+    all = await listGameStatuses();
+  } catch {
+    /* swallow — we only need the IDs */
   }
-  return { ids: matched.map((row) => row.id), matched, all };
+  return {
+    ids: DELISTED_STATUS_IDS.map((row) => row.id),
+    matched: DELISTED_STATUS_IDS,
+    all,
+  };
 }
 
 /**
