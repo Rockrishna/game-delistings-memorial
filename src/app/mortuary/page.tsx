@@ -13,35 +13,32 @@ type MortuaryGame = {
   platformBadges: Array<"steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default">;
   genres: string[];
   delistDate: string;
-  reason?: string;
+  rating?: number | null;
   coverUrl?: string;
 };
 
 type FacetEntry = { name: string; count: number };
 type Facets = {
   Platform: FacetEntry[];
-  Cause: FacetEntry[];
-  Decade: FacetEntry[];
   Genre: FacetEntry[];
+  Decade: FacetEntry[];
+  Rating: FacetEntry[];
 };
 
-function normaliseCause(reason: string | undefined): string {
-  if (!reason) return "Undisclosed";
-  const lower = reason.toLowerCase();
-  if (lower.includes("license") || lower.includes("licence")) return "License Expiry";
-  if (lower.includes("server") || lower.includes("shutdown")) return "Service Shutdown";
-  if (lower.includes("publish")) return "Publisher Decision";
-  if (lower.includes("storefront") || lower.includes("store closure")) return "Storefront Closure";
-  if (lower.includes("replace") || lower.includes("definitive") || lower.includes("re-release"))
-    return "Replaced";
-  if (lower.includes("agreement") || lower.includes("contract")) return "Agreement Lapse";
-  return reason.length > 28 ? `${reason.slice(0, 25).trim()}…` : reason;
+function ratingBucket(rating: number | null | undefined): string {
+  if (rating == null) return "Unrated";
+  if (rating >= 90) return "90+";
+  if (rating >= 80) return "80–89";
+  if (rating >= 70) return "70–79";
+  if (rating >= 60) return "60–69";
+  if (rating >= 50) return "50–59";
+  return "<50";
 }
 
 export default function MortuaryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
+  const [selectedRatings, setSelectedRatings] = useState<string[]>([]);
   const [selectedDecade, setSelectedDecade] = useState<string>("");
   const [visibleCount, setVisibleCount] = useState(12);
   const [games, setGames] = useState<MortuaryGame[]>([]);
@@ -78,9 +75,9 @@ export default function MortuaryPage() {
         const matches = game.platforms.some((platform) => selectedPlatforms.includes(platform));
         if (!matches) return false;
       }
-      if (selectedCauses.length) {
-        const cause = normaliseCause(game.reason);
-        if (!selectedCauses.includes(cause)) return false;
+      if (selectedRatings.length) {
+        const bucket = ratingBucket(game.rating);
+        if (!selectedRatings.includes(bucket)) return false;
       }
       if (selectedDecade && game.releaseYear) {
         const decade = `${Math.floor(game.releaseYear / 10) * 10}s`;
@@ -88,7 +85,7 @@ export default function MortuaryPage() {
       }
       return true;
     });
-  }, [games, selectedPlatforms, selectedCauses, selectedDecade]);
+  }, [games, selectedPlatforms, selectedRatings, selectedDecade]);
 
   const visibleGames = filteredGames.slice(0, visibleCount);
   const hasMore = filteredGames.length > visibleGames.length;
@@ -99,8 +96,8 @@ export default function MortuaryPage() {
     );
   }
 
-  function toggleCause(name: string) {
-    setSelectedCauses((current) =>
+  function toggleRating(name: string) {
+    setSelectedRatings((current) =>
       current.includes(name) ? current.filter((c) => c !== name) : [...current, name]
     );
   }
@@ -136,11 +133,11 @@ export default function MortuaryPage() {
               />
             </FacetSection>
 
-            <FacetSection title="By Cause">
+            <FacetSection title="By Rating">
               <FacetCheckboxes
-                options={facets?.Cause ?? []}
-                selected={selectedCauses}
-                onToggle={toggleCause}
+                options={facets?.Rating ?? []}
+                selected={selectedRatings}
+                onToggle={toggleRating}
               />
             </FacetSection>
 
@@ -173,12 +170,12 @@ export default function MortuaryPage() {
               </div>
             </FacetSection>
 
-            {(selectedPlatforms.length || selectedCauses.length || selectedDecade) ? (
+            {(selectedPlatforms.length || selectedRatings.length || selectedDecade) ? (
               <button
                 type="button"
                 onClick={() => {
                   setSelectedPlatforms([]);
-                  setSelectedCauses([]);
+                  setSelectedRatings([]);
                   setSelectedDecade("");
                 }}
                 className="mt-4 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--accent)] underline-offset-2 hover:underline"
@@ -200,7 +197,7 @@ export default function MortuaryPage() {
             ) : filteredGames.length === 0 ? (
               <>
                 <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
-                  No records match these filters. Try widening the platform, cause, or decade.
+                  No records match these filters. Try widening the platform, rating, or decade.
                 </p>
                 <SearchFallback query={searchQuery} />
               </>
@@ -239,9 +236,9 @@ export default function MortuaryPage() {
                       <p className="mt-2 font-typewriter text-[9px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
                         {game.platforms.join(" · ")}
                       </p>
-                      {game.reason ? (
-                        <p className="mt-2 line-clamp-3 font-serif text-sm italic text-[color:var(--ink-2)]">
-                          “{game.reason}”
+                      {game.rating != null ? (
+                        <p className="mt-2 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                          IGDB rating {Math.round(game.rating)} / 100
                         </p>
                       ) : null}
                     </Link>

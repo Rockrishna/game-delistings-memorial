@@ -18,7 +18,7 @@ type EventCard = {
   status: "recent" | "upcoming" | "delisted";
   sourceUrl?: string;
   releaseYear?: number | null;
-  reason?: string | null;
+  rating?: number | null;
   daysFromNow: number;
 };
 
@@ -32,18 +32,18 @@ type LeadStory = {
   genres: string[];
   delistDate: string;
   releaseYear: number | null;
-  reason: string | null;
   sourceUrl: string | null;
+  rating: number | null;
 };
 
 type HomePayload = {
   stats: {
-    recent: number;
-    upcoming: number;
     total: number;
-    thisYear: number;
-    topCause: string;
+    recent: number;
     topPlatform: string;
+    topGenre: string;
+    oldestYear: number | null;
+    averageRating: number | null;
     gamesWithMetadata: number;
     platformsTracked: number;
     genresTracked: number;
@@ -52,7 +52,7 @@ type HomePayload = {
   };
   lead: LeadStory | null;
   recent: EventCard[];
-  upcoming: EventCard[];
+  topRated: EventCard[];
 };
 
 function formatDate(value: string) {
@@ -94,14 +94,14 @@ export default function HomePage() {
     run();
   }, []);
 
-  const filteredRecent = useMemo(() => filterEvents(data?.recent ?? [], searchQuery), [
-    data?.recent,
-    searchQuery,
-  ]);
-  const filteredUpcoming = useMemo(() => filterEvents(data?.upcoming ?? [], searchQuery), [
-    data?.upcoming,
-    searchQuery,
-  ]);
+  const filteredRecent = useMemo(
+    () => filterEvents(data?.recent ?? [], searchQuery),
+    [data?.recent, searchQuery]
+  );
+  const filteredTopRated = useMemo(
+    () => filterEvents(data?.topRated ?? [], searchQuery),
+    [data?.topRated, searchQuery]
+  );
 
   if (loading) {
     return (
@@ -198,12 +198,12 @@ export default function HomePage() {
                       Delisted
                     </dt>
                     <dd>{formatDate(lead.delistDate)}</dd>
-                    {lead.reason ? (
+                    {lead.rating != null ? (
                       <>
                         <dt className="font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
-                          Reason
+                          IGDB rating
                         </dt>
-                        <dd>{lead.reason}</dd>
+                        <dd>{Math.round(lead.rating)} / 100</dd>
                       </>
                     ) : null}
                     {lead.genres.length ? (
@@ -229,7 +229,7 @@ export default function HomePage() {
                     rel="noopener noreferrer"
                     className="hover:text-[color:var(--ink)]"
                   >
-                    Source ↗
+                    IGDB ↗
                   </a>
                 ) : null}
               </div>
@@ -240,18 +240,18 @@ export default function HomePage() {
                 No records yet
               </p>
               <p className="mt-3 font-serif text-base text-[color:var(--ink-2)]">
-                The database is empty. Add delisting events to begin tracking.
+                The database is empty. Trigger /api/admin/sync to ingest from IGDB.
               </p>
             </article>
           )}
 
           <aside className="p-5">
             <p className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">
-              Upcoming delistings
+              Top rated, delisted
             </p>
             <ul className="mt-3 space-y-3">
-              {filteredUpcoming.slice(0, 5).length ? (
-                filteredUpcoming.slice(0, 5).map((game) => (
+              {filteredTopRated.slice(0, 5).length ? (
+                filteredTopRated.slice(0, 5).map((game) => (
                   <li
                     key={game.id}
                     className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-dashed border-[color:var(--rule-soft)] pb-3"
@@ -264,44 +264,50 @@ export default function HomePage() {
                         {game.title}
                       </Link>
                       <p className="mt-1 font-typewriter text-[9px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
-                        {game.platforms.join(" · ")}
+                        {game.platforms.slice(0, 2).join(" · ")}
                       </p>
                     </div>
                     <div className="border border-[color:var(--accent)] px-2 py-1 text-center">
                       <p className="font-typewriter text-[8px] uppercase tracking-[0.14em] text-[color:var(--accent)]">
-                        Days left
+                        Rating
                       </p>
                       <p className="font-display text-xl font-bold leading-none text-[color:var(--accent)]">
-                        {Math.max(0, game.daysFromNow)}
+                        {game.rating != null ? Math.round(game.rating) : "—"}
                       </p>
                     </div>
                   </li>
                 ))
               ) : (
                 <li className="font-serif text-sm italic text-[color:var(--ink-3)]">
-                  No upcoming delistings.
+                  No rated entries yet.
                 </li>
               )}
             </ul>
             <Link
-              href="/timeline"
+              href="/mortuary"
               className="mt-3 inline-block font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)] underline-offset-2 hover:underline"
             >
-              View full timeline →
+              Browse archive →
             </Link>
           </aside>
         </div>
 
         {/* By the numbers — primary catalogue stats */}
         <div className="grid grid-cols-2 border-t border-double-ink bg-[color:var(--paper-2)] sm:grid-cols-3 lg:grid-cols-5">
-          <StatsBlock label="Titles in the ledger" value={data.stats.total.toLocaleString()} />
-          <StatsBlock label="Entered this year" value={data.stats.thisYear.toLocaleString()} />
-          <StatsBlock label="Upcoming" value={data.stats.upcoming.toLocaleString()} />
-          <StatsBlock label="Top cause" value={data.stats.topCause} />
+          <StatsBlock label="Titles tracked" value={data.stats.total.toLocaleString()} />
+          <StatsBlock
+            label="Avg IGDB rating"
+            value={data.stats.averageRating != null ? `${data.stats.averageRating} / 100` : "—"}
+          />
+          <StatsBlock
+            label="Oldest entry"
+            value={data.stats.oldestYear != null ? String(data.stats.oldestYear) : "—"}
+          />
+          <StatsBlock label="Top genre" value={data.stats.topGenre} />
           <StatsBlock label="Most affected" value={data.stats.topPlatform} />
         </div>
 
-        {/* IGDB cache & catalogue depth — driven by Postgres-backed request cache */}
+        {/* IGDB cache & catalogue depth */}
         <div className="grid grid-cols-2 border-t border-[color:var(--rule)] bg-[color:var(--paper)] sm:grid-cols-4">
           <StatsBlock
             label="Games with IGDB metadata"
@@ -334,7 +340,7 @@ export default function HomePage() {
         {/* Search bar */}
         <div className="border-t-[3px] border-double border-[color:var(--ink)] px-6 py-5">
           <SearchBar
-            placeholder="Search by title, platform, or genre…"
+            placeholder="Search titles…"
             onSearch={setSearchQuery}
             initialValue={searchQuery}
           />
@@ -399,21 +405,17 @@ function eventToLead(event: EventCard): LeadStory {
     genres: [],
     delistDate: event.delistDate,
     releaseYear: event.releaseYear ?? null,
-    reason: event.reason ?? null,
     sourceUrl: event.sourceUrl ?? null,
+    rating: event.rating ?? null,
   };
 }
 
-function filterEvents<T extends { title: string; platforms: string[]; reason?: string | null }>(
-  events: T[],
-  query: string
-) {
+function filterEvents<T extends { title: string; platforms: string[] }>(events: T[], query: string) {
   const normalised = query.trim().toLowerCase();
   if (!normalised) return events;
   return events.filter((event) => {
     if (event.title.toLowerCase().includes(normalised)) return true;
     if (event.platforms.some((platform) => platform.toLowerCase().includes(normalised))) return true;
-    if (event.reason && event.reason.toLowerCase().includes(normalised)) return true;
     return false;
   });
 }

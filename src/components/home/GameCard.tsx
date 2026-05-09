@@ -12,7 +12,7 @@ interface GameCardProps {
   status: StatusType;
   sourceUrl?: string;
   releaseYear?: number | null;
-  reason?: string | null;
+  rating?: number | null;
 }
 
 const STATUS_LABEL: Record<StatusType, string> = {
@@ -30,7 +30,7 @@ export default function GameCard({
   delistDate,
   status,
   releaseYear,
-  reason,
+  rating,
 }: GameCardProps) {
   const delist = new Date(delistDate);
   const formattedDate = delist.toLocaleDateString("en-US", {
@@ -67,9 +67,9 @@ export default function GameCard({
         <p className="mt-1 font-serif text-xs italic text-[color:var(--ink-2)]">{dates}</p>
       </div>
 
-      {reason ? (
-        <p className="mt-3 line-clamp-3 text-center font-serif text-sm italic text-[color:var(--ink-2)]">
-          “{reason}”
+      {rating != null ? (
+        <p className="mt-2 text-center font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+          IGDB rating {Math.round(rating)} / 100
         </p>
       ) : null}
 

@@ -86,13 +86,13 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
                 </section>
               ) : null}
 
-              {game.reason ? (
+              {game.rating != null ? (
                 <section className="border-l-2 border-[color:var(--accent)] pl-4">
                   <p className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-[color:var(--accent)]">
-                    Reason for delisting
+                    IGDB rating
                   </p>
                   <p className="mt-1 font-display text-xl font-bold leading-snug">
-                    {game.reason}
+                    {Math.round(game.rating)} / 100
                   </p>
                 </section>
               ) : null}

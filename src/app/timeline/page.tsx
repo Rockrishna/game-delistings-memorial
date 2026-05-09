@@ -14,7 +14,7 @@ type TimelineGame = {
   platformBadges: Array<"steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default">;
   status: "recent" | "upcoming" | "delisted";
   delistDate: string;
-  reason: string | null;
+  rating: number | null;
   releaseYear: number | null;
   daysFromNow: number;
   coverUrl?: string;
@@ -143,7 +143,7 @@ export default function TimelinePage() {
         <div className="border-b border-[color:var(--rule)] bg-[color:var(--paper-2)] px-6 py-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto] md:items-end">
             <SearchBar
-              placeholder="Search games or reasons…"
+              placeholder="Search titles or genres…"
               onSearch={setSearchQuery}
               initialValue={searchQuery}
             />
@@ -277,8 +277,10 @@ export default function TimelinePage() {
                                 {game.releaseYear ? `Released ${game.releaseYear} · ` : ""}
                                 {game.platforms.join(", ")}
                               </p>
-                              {game.reason ? (
-                                <p className="mt-2 font-serif text-sm text-[color:var(--ink-2)]">{game.reason}</p>
+                              {game.rating != null ? (
+                                <p className="mt-2 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                                  IGDB rating {Math.round(game.rating)} / 100
+                                </p>
                               ) : null}
                               <div className="mt-3 flex flex-wrap items-center gap-2">
                                 <Badge label={game.status} variant={game.status} />

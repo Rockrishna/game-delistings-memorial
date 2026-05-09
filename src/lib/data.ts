@@ -31,34 +31,50 @@ const eventInclude = {
 } satisfies Prisma.DelistingEventInclude;
 
 export async function getHomePageData() {
-  const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1));
-  const [recent, upcoming, lead, totalEvents, thisYearCount, allEvents, gamesWithMetadata, platformsTracked, genresTracked, igdbCache] = await Promise.all([
+  const [
+    recent,
+    lead,
+    totalEvents,
+    allEvents,
+    ratingAgg,
+    oldestGame,
+    topRatedRows,
+    gamesWithMetadata,
+    platformsTracked,
+    genresTracked,
+    igdbCache,
+  ] = await Promise.all([
     prisma.delistingEvent.findMany({
-      where: { type: DelistingType.RECENT },
+      where: { type: DelistingType.DELISTED },
       include: eventInclude,
       orderBy: { delistDate: "desc" },
       take: 9,
     }),
-    prisma.delistingEvent.findMany({
-      where: { type: DelistingType.UPCOMING },
-      include: eventInclude,
-      orderBy: { delistDate: "asc" },
-      take: 6,
-    }),
     prisma.delistingEvent.findFirst({
-      where: { type: DelistingType.RECENT },
+      where: { type: DelistingType.DELISTED },
       include: eventInclude,
       orderBy: { delistDate: "desc" },
     }),
     prisma.delistingEvent.count(),
-    prisma.delistingEvent.count({
-      where: {
-        type: { in: [DelistingType.RECENT, DelistingType.DELISTED] },
-        delistDate: { gte: yearStart },
-      },
-    }),
     prisma.delistingEvent.findMany({
+      where: { type: DelistingType.DELISTED },
       include: { game: { include: { platforms: { include: { platform: true } } } } },
+    }),
+    prisma.game.aggregate({
+      where: { rating: { not: null } },
+      _avg: { rating: true },
+    }),
+    prisma.game.findFirst({
+      where: { firstReleaseAt: { not: null } },
+      orderBy: { firstReleaseAt: "asc" },
+      select: { firstReleaseAt: true, name: true, slug: true },
+    }),
+    // Top-rated delisted games to feature on the home page
+    prisma.delistingEvent.findMany({
+      where: { type: DelistingType.DELISTED, game: { rating: { not: null } } },
+      include: eventInclude,
+      orderBy: { game: { rating: "desc" } },
+      take: 6,
     }),
     prisma.game.count({ where: { igdbId: { not: null } } }),
     prisma.platform.count(),
@@ -66,30 +82,37 @@ export async function getHomePageData() {
     getIgdbCacheStats(),
   ]);
 
-  const causeCounts = new Map<string, number>();
   const platformCounts = new Map<string, number>();
+  const genreCounts = new Map<string, number>();
   for (const event of allEvents) {
-    if (event.reason) {
-      const key = normaliseCause(event.reason);
-      causeCounts.set(key, (causeCounts.get(key) ?? 0) + 1);
-    }
     for (const platform of event.game.platforms) {
       const name = platform.platform.name;
       platformCounts.set(name, (platformCounts.get(name) ?? 0) + 1);
     }
   }
 
-  const topCause = topEntry(causeCounts) ?? "Undisclosed";
+  // Genre counts pulled from a lighter query to avoid bloating allEvents
+  const allGenres = await prisma.gameGenre.findMany({
+    include: { genre: { select: { name: true } } },
+  });
+  for (const row of allGenres) {
+    const name = row.genre.name;
+    genreCounts.set(name, (genreCounts.get(name) ?? 0) + 1);
+  }
+
   const topPlatform = topEntry(platformCounts) ?? "—";
+  const topGenre = topEntry(genreCounts) ?? "—";
+  const oldestYear = oldestGame?.firstReleaseAt?.getUTCFullYear() ?? null;
+  const averageRating = ratingAgg._avg.rating ? Math.round(ratingAgg._avg.rating) : null;
 
   return {
     stats: {
-      recent: recent.length,
-      upcoming: upcoming.length,
       total: totalEvents,
-      thisYear: thisYearCount,
-      topCause,
+      recent: recent.length,
       topPlatform,
+      topGenre,
+      oldestYear,
+      averageRating,
       gamesWithMetadata,
       platformsTracked,
       genresTracked,
@@ -98,22 +121,8 @@ export async function getHomePageData() {
     },
     lead: lead ? mapLead(lead) : null,
     recent: recent.map(mapEventCard),
-    upcoming: upcoming.map(mapEventCard),
+    topRated: topRatedRows.map(mapEventCard),
   };
-}
-
-function normaliseCause(reason: string): string {
-  const trimmed = reason.trim();
-  if (!trimmed) return "Undisclosed";
-  const lower = trimmed.toLowerCase();
-  if (lower.includes("license") || lower.includes("licence")) return "License Expiry";
-  if (lower.includes("server") || lower.includes("shutdown")) return "Service Shutdown";
-  if (lower.includes("publish")) return "Publisher Decision";
-  if (lower.includes("storefront") || lower.includes("store closure")) return "Storefront Closure";
-  if (lower.includes("replace") || lower.includes("definitive") || lower.includes("re-release"))
-    return "Replaced";
-  if (lower.includes("agreement") || lower.includes("contract")) return "Agreement Lapse";
-  return trimmed.length > 28 ? `${trimmed.slice(0, 25).trim()}…` : trimmed;
 }
 
 function topEntry(map: Map<string, number>): string | null {
@@ -223,8 +232,8 @@ export async function getMortuaryData(search?: string) {
     platformBadges: event.game.platforms.map((platform) => asPlatformBadge(platform.platform.slug)),
     genres: event.game.genres.map((genre) => genre.genre.name),
     delistDate: event.delistDate.toISOString(),
-    reason: event.reason,
     coverUrl: event.game.coverUrl,
+    rating: event.game.rating ?? null,
   }));
 }
 
@@ -250,10 +259,10 @@ export async function getGameDetailById(id: string) {
     platforms: game.platforms.map((platform) => platform.platform.name),
     platformBadges: game.platforms.map((platform) => asPlatformBadge(platform.platform.slug)),
     genres: game.genres.map((genre) => genre.genre.name),
-    status: latestEvent ? asStatus(latestEvent.type) : "recent",
+    status: latestEvent ? asStatus(latestEvent.type) : "delisted",
     delistDate: latestEvent?.delistDate.toISOString(),
-    reason: latestEvent?.reason,
     sourceUrl: latestEvent?.sourceUrl,
+    rating: game.rating ?? null,
   };
 }
 
@@ -269,7 +278,7 @@ function mapEventCard(event: Prisma.DelistingEventGetPayload<{ include: typeof e
     status: asStatus(event.type),
     sourceUrl: event.sourceUrl,
     releaseYear: event.game.firstReleaseAt?.getUTCFullYear() ?? null,
-    reason: event.reason ?? null,
+    rating: event.game.rating ?? null,
     daysFromNow: Math.round((event.delistDate.getTime() - Date.now()) / 86_400_000),
   };
 }
@@ -285,8 +294,8 @@ function mapLead(event: Prisma.DelistingEventGetPayload<{ include: typeof eventI
     genres: event.game.genres.map((genre) => genre.genre.name),
     delistDate: event.delistDate.toISOString(),
     releaseYear: event.game.firstReleaseAt?.getUTCFullYear() ?? null,
-    reason: event.reason ?? null,
     sourceUrl: event.sourceUrl ?? null,
+    rating: event.game.rating ?? null,
   };
 }
 
@@ -300,7 +309,7 @@ function mapTimelineItem(event: Prisma.DelistingEventGetPayload<{ include: typeo
     platformBadges: event.game.platforms.map((platform) => asPlatformBadge(platform.platform.slug)),
     status: asStatus(event.type),
     delistDate: event.delistDate.toISOString(),
-    reason: event.reason ?? null,
+    rating: event.game.rating ?? null,
     releaseYear: event.game.firstReleaseAt?.getUTCFullYear() ?? null,
     daysFromNow: Math.round((event.delistDate.getTime() - Date.now()) / 86_400_000),
   };
@@ -317,17 +326,13 @@ export async function getMortuaryFacets() {
   });
 
   const platforms = new Map<string, number>();
-  const causes = new Map<string, number>();
   const decades = new Map<string, number>();
   const genres = new Map<string, number>();
+  const ratings = new Map<string, number>();
 
   for (const event of events) {
     for (const platform of event.game.platforms) {
       platforms.set(platform.platform.name, (platforms.get(platform.platform.name) ?? 0) + 1);
-    }
-    if (event.reason) {
-      const key = normaliseCause(event.reason);
-      causes.set(key, (causes.get(key) ?? 0) + 1);
     }
     if (event.game.firstReleaseAt) {
       const year = event.game.firstReleaseAt.getUTCFullYear();
@@ -337,6 +342,10 @@ export async function getMortuaryFacets() {
     for (const genre of event.game.genres) {
       genres.set(genre.genre.name, (genres.get(genre.genre.name) ?? 0) + 1);
     }
+    const ratingBucket = ratingToBucket(event.game.rating);
+    if (ratingBucket) {
+      ratings.set(ratingBucket, (ratings.get(ratingBucket) ?? 0) + 1);
+    }
   }
 
   function sortMap(map: Map<string, number>) {
@@ -345,8 +354,18 @@ export async function getMortuaryFacets() {
 
   return {
     Platform: sortMap(platforms),
-    Cause: sortMap(causes),
-    Decade: sortMap(decades),
     Genre: sortMap(genres),
+    Decade: sortMap(decades),
+    Rating: sortMap(ratings),
   };
+}
+
+function ratingToBucket(rating: number | null): string | null {
+  if (rating == null) return "Unrated";
+  if (rating >= 90) return "90+";
+  if (rating >= 80) return "80–89";
+  if (rating >= 70) return "70–79";
+  if (rating >= 60) return "60–69";
+  if (rating >= 50) return "50–59";
+  return "<50";
 }
