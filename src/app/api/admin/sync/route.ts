@@ -45,16 +45,24 @@ export async function POST(request: Request) {
     );
   }
 
-  // ?fresh=1 clears cached IGDB request rows so a single run re-fetches
-  // (used to recover from a previously polluted cache).
   const fresh = new URL(request.url).searchParams.get("fresh") === "1";
-  if (fresh) {
-    await prisma.igdbRequest.deleteMany({});
+
+  try {
+    if (fresh) {
+      await prisma.igdbRequest.deleteMany({});
+    }
+    const summary = await syncDelistedFromIGDB();
+    const cache = await getIgdbCacheStats();
+    const totalEvents = await prisma.delistingEvent.count();
+    return NextResponse.json({ ok: true, fresh, summary, cache, totalEvents });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Sync failed.",
+        details: (error as Error).message,
+        stack: (error as Error).stack?.split("\n").slice(0, 5),
+      },
+      { status: 500 }
+    );
   }
-
-  const summary = await syncDelistedFromIGDB();
-  const cache = await getIgdbCacheStats();
-  const totalEvents = await prisma.delistingEvent.count();
-
-  return NextResponse.json({ ok: true, fresh, summary, cache, totalEvents });
 }
