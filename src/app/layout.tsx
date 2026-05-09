@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Playfair_Display, Crimson_Pro, Special_Elite } from "next/font/google";
 import Header from "@/components/layout/Header";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 
 const playfair = Playfair_Display({
@@ -53,6 +54,7 @@ export default function RootLayout({
               <span>Game metadata via IGDB</span>
             </div>
           </footer>
+          <ScrollToTop />
         </ThemeProvider>
       </body>
     </html>

@@ -124,8 +124,14 @@ export default function TimelinePage() {
     });
   }
 
+  function jumpTo(id: string) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <main className="mx-auto max-w-[1280px] bg-[color:var(--paper)] pb-16">
+      <span id="timeline-top" aria-hidden className="block" />
       <section className="border-x border-b border-[color:var(--ink)]">
         <header className="border-b-[3px] border-double border-[color:var(--ink)] px-6 py-6 text-center">
           <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
@@ -204,10 +210,20 @@ export default function TimelinePage() {
               </div>
             </div>
           </div>
-          <p className="mt-3 font-serif text-xs italic text-[color:var(--ink-3)]">
-            Showing {totalEntries} entries across {filteredTimeline.length} month
-            {filteredTimeline.length === 1 ? "" : "s"}.
-          </p>
+          <div className="mt-3 flex items-baseline justify-between gap-4">
+            <p className="font-serif text-xs italic text-[color:var(--ink-3)]">
+              Showing {totalEntries} entries across {filteredTimeline.length} month
+              {filteredTimeline.length === 1 ? "" : "s"}.
+            </p>
+            <button
+              type="button"
+              onClick={() => jumpTo("timeline-bottom")}
+              className="flex items-center gap-1 border border-[color:var(--rule-soft)] bg-[color:var(--paper)] px-2 py-1 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-2)] transition-colors hover:border-[color:var(--ink)] hover:text-[color:var(--ink)]"
+              aria-label="Jump to bottom of timeline"
+            >
+              Jump to end <span aria-hidden>↓</span>
+            </button>
+          </div>
         </div>
 
         <div className="px-6 py-8">
@@ -318,6 +334,17 @@ export default function TimelinePage() {
                   </button>
                 </div>
               ) : null}
+
+              <div id="timeline-bottom" className="border-t border-dashed border-[color:var(--rule-soft)] pt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => jumpTo("timeline-top")}
+                  className="inline-flex items-center gap-1 border border-[color:var(--ink)] bg-[color:var(--paper)] px-4 py-2 font-typewriter text-[11px] uppercase tracking-[0.18em] text-[color:var(--ink)] transition-colors hover:bg-[color:var(--ink)] hover:text-[color:var(--paper)]"
+                  aria-label="Back to top of timeline"
+                >
+                  <span aria-hidden>↑</span> Back to top
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -25,6 +25,23 @@ type Facets = {
   Rating: FacetEntry[];
 };
 
+type SortKey =
+  | "newest_delist"
+  | "oldest_delist"
+  | "alphabetical"
+  | "highest_rated"
+  | "newest_release"
+  | "oldest_release";
+
+const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
+  { value: "newest_delist", label: "Most recently delisted" },
+  { value: "oldest_delist", label: "Earliest delisted" },
+  { value: "highest_rated", label: "Highest IGDB rating" },
+  { value: "alphabetical", label: "Title (A → Z)" },
+  { value: "newest_release", label: "Newest release year" },
+  { value: "oldest_release", label: "Oldest release year" },
+];
+
 function ratingBucket(rating: number | null | undefined): string {
   if (rating == null) return "Unrated";
   if (rating >= 90) return "90+";
@@ -39,7 +56,10 @@ export default function MortuaryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<string[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedDecade, setSelectedDecade] = useState<string>("");
+  const [withCoverOnly, setWithCoverOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>("newest_delist");
   const [visibleCount, setVisibleCount] = useState(12);
   const [games, setGames] = useState<MortuaryGame[]>([]);
   const [facets, setFacets] = useState<Facets | null>(null);
@@ -70,7 +90,7 @@ export default function MortuaryPage() {
   }, [searchQuery]);
 
   const filteredGames = useMemo(() => {
-    return games.filter((game) => {
+    const filtered = games.filter((game) => {
       if (selectedPlatforms.length) {
         const matches = game.platforms.some((platform) => selectedPlatforms.includes(platform));
         if (!matches) return false;
@@ -79,13 +99,44 @@ export default function MortuaryPage() {
         const bucket = ratingBucket(game.rating);
         if (!selectedRatings.includes(bucket)) return false;
       }
+      if (selectedGenres.length) {
+        const matches = game.genres.some((genre) => selectedGenres.includes(genre));
+        if (!matches) return false;
+      }
       if (selectedDecade && game.releaseYear) {
         const decade = `${Math.floor(game.releaseYear / 10) * 10}s`;
         if (decade !== selectedDecade) return false;
       }
+      if (selectedDecade && !game.releaseYear) {
+        return false;
+      }
+      if (withCoverOnly && !game.coverUrl) return false;
       return true;
     });
-  }, [games, selectedPlatforms, selectedRatings, selectedDecade]);
+
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case "newest_delist":
+        sorted.sort((a, b) => b.delistDate.localeCompare(a.delistDate));
+        break;
+      case "oldest_delist":
+        sorted.sort((a, b) => a.delistDate.localeCompare(b.delistDate));
+        break;
+      case "alphabetical":
+        sorted.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "highest_rated":
+        sorted.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+        break;
+      case "newest_release":
+        sorted.sort((a, b) => (b.releaseYear ?? -Infinity) - (a.releaseYear ?? -Infinity));
+        break;
+      case "oldest_release":
+        sorted.sort((a, b) => (a.releaseYear ?? Infinity) - (b.releaseYear ?? Infinity));
+        break;
+    }
+    return sorted;
+  }, [games, selectedPlatforms, selectedRatings, selectedGenres, selectedDecade, withCoverOnly, sortBy]);
 
   const visibleGames = filteredGames.slice(0, visibleCount);
   const hasMore = filteredGames.length > visibleGames.length;
@@ -101,6 +152,19 @@ export default function MortuaryPage() {
       current.includes(name) ? current.filter((c) => c !== name) : [...current, name]
     );
   }
+
+  function toggleGenre(name: string) {
+    setSelectedGenres((current) =>
+      current.includes(name) ? current.filter((g) => g !== name) : [...current, name]
+    );
+  }
+
+  const activeFilterCount =
+    selectedPlatforms.length +
+    selectedRatings.length +
+    selectedGenres.length +
+    (selectedDecade ? 1 : 0) +
+    (withCoverOnly ? 1 : 0);
 
   return (
     <main className="mx-auto max-w-[1280px] bg-[color:var(--paper)] pb-16">
@@ -122,10 +186,29 @@ export default function MortuaryPage() {
               placeholder="Search the index…"
               onSearch={setSearchQuery}
               initialValue={searchQuery}
-              className="mb-5"
+              className="mb-4"
             />
 
-            <FacetSection title="By Platform">
+            <div className="mb-4 flex items-center justify-between border-b border-dashed border-[color:var(--rule-soft)] pb-2 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
+              <span>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}</span>
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlatforms([]);
+                    setSelectedRatings([]);
+                    setSelectedGenres([]);
+                    setSelectedDecade("");
+                    setWithCoverOnly(false);
+                  }}
+                  className="text-[color:var(--accent)] underline-offset-2 hover:underline"
+                >
+                  Clear all
+                </button>
+              ) : null}
+            </div>
+
+            <FacetSection title="By Platform" badge={selectedPlatforms.length}>
               <FacetCheckboxes
                 options={facets?.Platform ?? []}
                 selected={selectedPlatforms}
@@ -133,7 +216,15 @@ export default function MortuaryPage() {
               />
             </FacetSection>
 
-            <FacetSection title="By Rating">
+            <FacetSection title="By Genre" badge={selectedGenres.length}>
+              <FacetCheckboxes
+                options={facets?.Genre ?? []}
+                selected={selectedGenres}
+                onToggle={toggleGenre}
+              />
+            </FacetSection>
+
+            <FacetSection title="By Rating" badge={selectedRatings.length}>
               <FacetCheckboxes
                 options={facets?.Rating ?? []}
                 selected={selectedRatings}
@@ -141,7 +232,7 @@ export default function MortuaryPage() {
               />
             </FacetSection>
 
-            <FacetSection title="By Decade">
+            <FacetSection title="By Decade" badge={selectedDecade ? 1 : 0}>
               <div className="space-y-1">
                 <button
                   type="button"
@@ -170,22 +261,44 @@ export default function MortuaryPage() {
               </div>
             </FacetSection>
 
-            {(selectedPlatforms.length || selectedRatings.length || selectedDecade) ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPlatforms([]);
-                  setSelectedRatings([]);
-                  setSelectedDecade("");
-                }}
-                className="mt-4 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--accent)] underline-offset-2 hover:underline"
-              >
-                Clear all filters
-              </button>
-            ) : null}
+            <FacetSection title="Other" badge={withCoverOnly ? 1 : 0}>
+              <label className="flex cursor-pointer items-center gap-2 px-2 py-1 font-serif text-sm">
+                <input
+                  type="checkbox"
+                  checked={withCoverOnly}
+                  onChange={(event) => setWithCoverOnly(event.target.checked)}
+                  className="h-3 w-3 cursor-pointer accent-[color:var(--ink)]"
+                />
+                <span>Has cover art</span>
+              </label>
+            </FacetSection>
           </aside>
 
           <div className="px-6 py-8">
+            {/* Sort + count strip */}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-dashed border-[color:var(--rule-soft)] pb-3">
+              <p className="font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
+                {filteredGames.length} record{filteredGames.length === 1 ? "" : "s"}
+                {filteredGames.length !== visibleGames.length
+                  ? ` · showing ${visibleGames.length}`
+                  : ""}
+              </p>
+              <label className="flex items-center gap-2 font-typewriter text-[10px] uppercase tracking-[0.16em] text-[color:var(--ink-3)]">
+                <span>Sort</span>
+                <select
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value as SortKey)}
+                  className="border border-[color:var(--ink)] bg-[color:var(--paper)] px-2 py-1 font-serif text-xs normal-case tracking-normal text-[color:var(--ink)] focus:outline-none"
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             {loading ? (
               <p className="text-center font-serif italic text-[color:var(--ink-2)]">
                 Loading archive…
@@ -197,17 +310,12 @@ export default function MortuaryPage() {
             ) : filteredGames.length === 0 ? (
               <>
                 <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
-                  No records match these filters. Try widening the platform, rating, or decade.
+                  No records match these filters. Try widening the platform, genre, rating, or decade.
                 </p>
                 <SearchFallback query={searchQuery} />
               </>
             ) : (
               <>
-                <p className="mb-6 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
-                  {filteredGames.length} record{filteredGames.length === 1 ? "" : "s"} ·
-                  showing {visibleGames.length}
-                </p>
-
                 <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
                   {visibleGames.map((game) => (
                     <Link
@@ -266,13 +374,39 @@ export default function MortuaryPage() {
   );
 }
 
-function FacetSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FacetSection({
+  title,
+  badge,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  badge?: number;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="mb-5">
-      <p className="border-b border-[color:var(--ink)] pb-1 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-2)]">
-        {title}
-      </p>
-      <div className="mt-2 space-y-1">{children}</div>
+    <section className="mb-3 border-b border-dashed border-[color:var(--rule-soft)] pb-3 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-2)] transition-colors hover:text-[color:var(--ink)]"
+      >
+        <span className="flex items-center gap-2">
+          <span>{title}</span>
+          {badge ? (
+            <span className="border border-[color:var(--accent)] px-1 text-[9px] tracking-[0.14em] text-[color:var(--accent)]">
+              {badge}
+            </span>
+          ) : null}
+        </span>
+        <span aria-hidden className="text-[color:var(--ink-3)]">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open ? <div className="mt-2 space-y-1">{children}</div> : null}
     </section>
   );
 }
