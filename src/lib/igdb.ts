@@ -231,19 +231,38 @@ async function buildAndQuery<T>(
   return rows;
 }
 
+/**
+ * Search IGDB by name and return the single best candidate. Used by the
+ * user-driven `/api/search/igdb` flow: the caller wants to know whether
+ * the title is delisted, so when several IGDB rows share the same name
+ * (multiple games called "Anthem", etc.) we bias selection toward the
+ * one tagged with a delisted status — otherwise the wrong "Anthem"
+ * surfaces first and gets cached as not_delisted forever.
+ *
+ * Selection priority: exact-name & delisted > any delisted match
+ *   > exact-name > first row.
+ */
 export async function searchIGDBGameByName(name: string): Promise<
   (NormalizedIGDBGame & { status?: number }) | null
 > {
   const rows = await buildAndQuery<IGDBGame>(
     "games",
-    `games:search:${name.toLowerCase()}`,
+    // Cache key includes :l10 so old :l5-shaped cache entries from the
+    // previous selection logic don't get reused for fresh lookups.
+    `games:search:${name.toLowerCase()}:l10`,
     THIRTY_DAYS_MS,
-    { fields: GAME_FIELDS, search: name, limit: 5 }
+    { fields: GAME_FIELDS, search: name, limit: 10 }
   );
   if (!rows.length) return null;
   const lower = name.toLowerCase();
+  const delistedSet = new Set(DELISTED_STATUS_IDS.map((entry) => entry.id));
+  const isDelisted = (row: IGDBGame) =>
+    typeof row.status === "number" && delistedSet.has(row.status);
+
+  const exactDelisted = rows.find((row) => row.name.toLowerCase() === lower && isDelisted(row));
+  const anyDelisted = rows.find(isDelisted);
   const exact = rows.find((row) => row.name.toLowerCase() === lower);
-  const row = exact ?? rows[0];
+  const row = exactDelisted ?? anyDelisted ?? exact ?? rows[0];
   return { ...normalizeRow(row), status: row.status };
 }
 
@@ -281,15 +300,21 @@ export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
 }
 
 /**
- * IGDB v4 game-status enum IDs that mean "no longer for sale". Confirmed
- * from a successful listGameStatuses query earlier (id 2 = Offline,
- * id 7 = Delisted). The /v4/game_statuses endpoint exposes only `id` and
- * `checksum` — there's no public field that names each row — so we keep
- * these hardcoded rather than rediscovering them on every sync.
+ * IGDB v4 `Game.status` enum values that mean "no longer for sale".
+ *
+ * Per the documented enum on the games endpoint:
+ *   0 released   2 alpha   3 beta   4 early_access
+ *   5 offline    6 cancelled   7 rumored   8 delisted
+ *
+ * We previously had this set to {2, 7} after a misread of the
+ * /v4/game_statuses endpoint — that pulled alpha + rumored games into the
+ * catalogue and made every legitimately-delisted title (e.g. Anthem,
+ * status=8) come back as "not_delisted" through the user search. The
+ * correct values are 5 (offline) and 8 (delisted).
  */
 const DELISTED_STATUS_IDS: Array<{ id: number; label: string }> = [
-  { id: 2, label: "Offline" },
-  { id: 7, label: "Delisted" },
+  { id: 5, label: "Offline" },
+  { id: 8, label: "Delisted" },
 ];
 
 export async function getDelistedStatusIds(): Promise<{
