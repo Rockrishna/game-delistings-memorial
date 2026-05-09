@@ -29,11 +29,12 @@ type TimelinePeriod = {
 
 const PLATFORMS = [
   { label: "All platforms", value: "" },
-  { label: "Steam", value: "steam" },
+  { label: "PC / Mac / Linux", value: "pc" },
   { label: "PlayStation", value: "playstation" },
   { label: "Xbox", value: "xbox" },
   { label: "Nintendo", value: "nintendo" },
-  { label: "Epic", value: "epic" },
+  { label: "Mobile", value: "mobile" },
+  { label: "Web / Stadia", value: "web" },
 ];
 
 const SORT_OPTIONS = [

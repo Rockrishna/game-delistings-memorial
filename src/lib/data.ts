@@ -21,6 +21,74 @@ function asPlatformBadge(slug: string): PlatformBadge {
   return "default";
 }
 
+/**
+ * Translate a friendly family slug (the values used by the timeline filter
+ * dropdown — "playstation", "nintendo", etc.) into a Prisma `where` clause
+ * for the Platform table.
+ *
+ * IGDB platforms have version-specific slugs ("ps4", "nintendo-3ds",
+ * "win", …), so an exact-equals on `Platform.slug` matches nothing for a
+ * family-level dropdown value. We expand each family to a set of name
+ * substrings that captures every IGDB-named platform we'd reasonably
+ * expect to fall under it.
+ *
+ * Returns `null` when the slug isn't a known family — in that case the
+ * caller should fall back to an exact slug match (so individual IGDB
+ * slugs like ?platform=ps4 still work).
+ */
+function platformFamilyWhere(family: string): Prisma.PlatformWhereInput | null {
+  switch (family.toLowerCase()) {
+    case "playstation":
+      return {
+        OR: [{ name: { contains: "PlayStation", mode: "insensitive" } }],
+      };
+    case "xbox":
+      return { OR: [{ name: { contains: "Xbox", mode: "insensitive" } }] };
+    case "nintendo":
+      return {
+        OR: [
+          { name: { contains: "Nintendo", mode: "insensitive" } },
+          { name: { contains: "Wii", mode: "insensitive" } },
+          { name: { contains: "Famicom", mode: "insensitive" } },
+          { name: { contains: "Game Boy", mode: "insensitive" } },
+          { name: { contains: "GameCube", mode: "insensitive" } },
+          { name: { equals: "Switch", mode: "insensitive" } },
+          { name: { equals: "Virtual Boy", mode: "insensitive" } },
+        ],
+      };
+    case "pc":
+    case "steam":
+      return {
+        OR: [
+          { name: { contains: "PC", mode: "insensitive" } },
+          { name: { equals: "Mac", mode: "insensitive" } },
+          { name: { equals: "Linux", mode: "insensitive" } },
+          { name: { contains: "DOS", mode: "insensitive" } },
+        ],
+      };
+    case "mobile":
+      return {
+        OR: [
+          { name: { equals: "iOS", mode: "insensitive" } },
+          { name: { equals: "Android", mode: "insensitive" } },
+          { name: { contains: "Mobile", mode: "insensitive" } },
+          { name: { contains: "Phone", mode: "insensitive" } },
+          { name: { contains: "BlackBerry", mode: "insensitive" } },
+        ],
+      };
+    case "web":
+      return {
+        OR: [
+          { name: { contains: "Web", mode: "insensitive" } },
+          { name: { contains: "Browser", mode: "insensitive" } },
+          { name: { contains: "Stadia", mode: "insensitive" } },
+        ],
+      };
+    default:
+      return null;
+  }
+}
+
 const eventInclude = {
   game: {
     include: {
@@ -162,7 +230,10 @@ export async function getTimelineData({
           ? {
               platforms: {
                 some: {
-                  platform: { slug: { equals: platform.toLowerCase() } },
+                  platform:
+                    platformFamilyWhere(platform) ?? {
+                      slug: { equals: platform.toLowerCase() },
+                    },
                 },
               },
             }
