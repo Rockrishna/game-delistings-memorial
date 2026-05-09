@@ -31,19 +31,30 @@ export async function POST(request: NextRequest) {
     500
   );
   const dryRun = url.searchParams.get("dryRun") === "1";
+  // ?retryIgdb=1 re-processes events already marked "igdb" (useful if
+  // Wikipedia coverage has improved since the last sweep). By default we
+  // only target unsourced rows so each sweep makes forward progress
+  // through the catalogue.
+  const retryIgdb = url.searchParams.get("retryIgdb") === "1";
+  // ?order=desc walks the catalogue newest-delistDate first — handy when
+  // we want to verify the pipeline against a recent entry (e.g. Anthem)
+  // without paging through the entire archive.
+  const order = url.searchParams.get("order") === "desc" ? "desc" : "asc";
 
-  // Process events that haven't been resolved yet OR are still on the IGDB
-  // tier (because Wikipedia might have new coverage since last attempt).
+  const sourceFilter = retryIgdb
+    ? { OR: [{ delistDateSource: null }, { delistDateSource: "igdb" }] }
+    : { delistDateSource: null };
+
   const candidates = await prisma.delistingEvent.findMany({
     where: {
       type: DelistingType.DELISTED,
-      OR: [{ delistDateSource: null }, { delistDateSource: "igdb" }],
+      ...sourceFilter,
       game: { igdbId: { not: null } },
     },
     include: {
       game: { select: { id: true, name: true, slug: true, igdbId: true, updatedAt: true } },
     },
-    orderBy: { delistDate: "asc" },
+    orderBy: { delistDate: order },
     take: limit,
   });
 
