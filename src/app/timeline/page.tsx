@@ -5,6 +5,7 @@ import Link from "next/link";
 import SearchBar from "@/components/common/SearchBar";
 import SearchFallback from "@/components/common/SearchFallback";
 import Badge from "@/components/common/Badge";
+import DateProvenance from "@/components/common/DateProvenance";
 
 type TimelineGame = {
   id: string;
@@ -14,6 +15,7 @@ type TimelineGame = {
   platformBadges: Array<"steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default">;
   status: "recent" | "upcoming" | "delisted";
   delistDate: string;
+  delistDateSource?: string | null;
   rating: number | null;
   releaseYear: number | null;
   daysFromNow: number;
@@ -308,6 +310,7 @@ export default function TimelinePage() {
                                     day: "numeric",
                                   })}
                                 </span>
+                                <DateProvenance source={game.delistDateSource} variant="inline" />
                               </div>
                               <Link
                                 href={`/games/${game.slug ?? game.id}`}

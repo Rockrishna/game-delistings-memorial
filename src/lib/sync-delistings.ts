@@ -5,6 +5,7 @@ import {
   fetchGamesByStatus,
   type NormalizedIGDBGame,
 } from "@/lib/igdb";
+import { resolveDelistDate } from "@/lib/delist-date-lookup";
 
 const PAGE_SIZE = 250;
 const MAX_PAGES = 20; // 5,000 games — safety cap
@@ -143,12 +144,6 @@ async function upsertGameAndEvent(
     });
   }
 
-  // IGDB doesn't tell us the precise delist date. Best signal is the game's
-  // updated_at timestamp on IGDB — that's when the status was last revised.
-  const delistDate = igdbUpdatedAtSeconds
-    ? new Date(igdbUpdatedAtSeconds * 1000)
-    : new Date();
-
   const existingEvent = await prisma.delistingEvent.findFirst({
     where: { gameId: game.id, type: DelistingType.DELISTED },
   });
@@ -158,11 +153,22 @@ async function upsertGameAndEvent(
     return;
   }
 
+  // Try Wikipedia first (real delist date), then SteamDB (stub), and only
+  // fall back to IGDB updated_at when neither has a hit. Source attribution
+  // is persisted so the UI can show an "approximate" badge for IGDB-tier
+  // entries.
+  const resolved = await resolveDelistDate({
+    igdbName: igdb.name,
+    igdbSlug: igdb.slug,
+    igdbUpdatedAtSeconds,
+  });
+
   await prisma.delistingEvent.create({
     data: {
       gameId: game.id,
       type: DelistingType.DELISTED,
-      delistDate,
+      delistDate: resolved.date,
+      delistDateSource: resolved.source,
       reason: "Marked offline/delisted by IGDB.",
       sourceUrl: `https://www.igdb.com/games/${igdb.slug}`,
     },

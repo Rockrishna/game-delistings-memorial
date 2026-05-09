@@ -6,6 +6,7 @@ import StatsCard from "@/components/home/StatsCard";
 import GameCard from "@/components/home/GameCard";
 import SearchBar from "@/components/common/SearchBar";
 import SearchFallback from "@/components/common/SearchFallback";
+import DateProvenance from "@/components/common/DateProvenance";
 
 type EventCard = {
   id: string;
@@ -15,6 +16,7 @@ type EventCard = {
   platforms: string[];
   platformBadges: Array<"steam" | "playstation" | "xbox" | "nintendo" | "epic" | "default">;
   delistDate: string;
+  delistDateSource?: string | null;
   status: "recent" | "upcoming" | "delisted";
   sourceUrl?: string;
   releaseYear?: number | null;
@@ -31,6 +33,7 @@ type LeadStory = {
   platforms: string[];
   genres: string[];
   delistDate: string;
+  delistDateSource?: string | null;
   releaseYear: number | null;
   sourceUrl: string | null;
   rating: number | null;
@@ -148,6 +151,18 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Sectional rule — separates the hero search from the article grid
+          below. Two stacked rules form a thin/thick double line in the
+          broadsheet style used between other sections of the page. */}
+      <div
+        aria-hidden
+        className="h-[5px] border-x border-[color:var(--ink)] bg-[color:var(--paper)]"
+      >
+        <div className="h-px bg-[color:var(--ink)]" />
+        <div className="h-px" />
+        <div className="h-[2px] bg-[color:var(--ink)]" />
+      </div>
+
       <section className="border-x border-b border-[color:var(--ink)]">
         {/* Above the fold */}
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_280px]">
@@ -191,6 +206,9 @@ export default function HomePage() {
             <article className="border-b border-[color:var(--rule)] p-6 lg:border-b-0 lg:border-r lg:p-8">
               <p className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--accent)]">
                 Most recent withdrawal · {formatDate(lead.delistDate)}
+              </p>
+              <p className="mt-1">
+                <DateProvenance source={lead.delistDateSource} variant="full" />
               </p>
 
               <Link

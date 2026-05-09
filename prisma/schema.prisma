@@ -75,6 +75,13 @@ model DelistingEvent {
   gameId      String
   type        DelistingType
   delistDate  DateTime
+  // Provenance for delistDate. One of:
+  //   "wikipedia" — extracted from a Wikipedia article (high confidence)
+  //   "steamdb"   — sourced from the SteamDB price-history scrape
+  //   "igdb"      — IGDB.updated_at proxy; approximate, surfaced with a
+  //                 disclaimer in the UI
+  //   null        — unset (older rows pre-dating the source field)
+  delistDateSource String?
   announcedAt DateTime?
   reason      String?
   sourceUrl   String?

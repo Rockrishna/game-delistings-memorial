@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGameDetailById } from "@/lib/data";
+import DateProvenance from "@/components/common/DateProvenance";
 
 function formatLong(value?: string) {
   if (!value) return null;
@@ -57,6 +58,12 @@ export default async function GameDetailPage({ params }: { params: Promise<{ id:
               <DefinitionRow label="Status" value={game.status} mono />
               <DefinitionRow label="Released" value={released ?? "Unknown"} />
               <DefinitionRow label="Delisted" value={delisted ?? "Not scheduled"} />
+              {delisted ? (
+                <div className="grid grid-cols-[110px_1fr] items-baseline gap-3 pl-0">
+                  <span aria-hidden />
+                  <DateProvenance source={game.delistDateSource} variant="inline" />
+                </div>
+              ) : null}
               <DefinitionRow label="Platforms" value={game.platforms.join(", ") || "—"} />
               <DefinitionRow label="Genres" value={game.genres.join(", ") || "—"} />
             </dl>

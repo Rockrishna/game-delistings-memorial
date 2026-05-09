@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PlatformType, StatusType } from "@/components/common/Badge";
+import DateProvenance from "@/components/common/DateProvenance";
 
 interface GameCardProps {
   id: string;
@@ -9,6 +10,7 @@ interface GameCardProps {
   platforms: string[];
   platformBadges?: PlatformType[];
   delistDate: string;
+  delistDateSource?: string | null;
   status: StatusType;
   sourceUrl?: string;
   releaseYear?: number | null;
@@ -28,6 +30,7 @@ export default function GameCard({
   coverUrl,
   platforms,
   delistDate,
+  delistDateSource,
   status,
   releaseYear,
   rating,
@@ -48,6 +51,9 @@ export default function GameCard({
     >
       <div className="font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--accent)]">
         {STATUS_LABEL[status]} · {formattedDate}
+      </div>
+      <div className="mt-0.5">
+        <DateProvenance source={delistDateSource} variant="compact" />
       </div>
 
       <div className="broadsheet-cover-frame mt-3 aspect-[3/4] w-full">
