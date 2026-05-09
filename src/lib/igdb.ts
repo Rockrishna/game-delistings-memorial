@@ -21,7 +21,8 @@ type IGDBGame = {
 
 type IGDBGameStatus = {
   id: number;
-  name?: string;
+  // IGDB v4 only exposes description / checksum on this endpoint — there
+  // is no public `name` field; querying it returns 400 Invalid Field.
   description?: string;
   checksum?: string;
 };
@@ -271,7 +272,7 @@ export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
     "game_statuses",
     "game_statuses:all",
     THIRTY_DAYS_MS,
-    { fields: ["name", "description", "checksum"], limit: 50 }
+    { fields: ["description", "checksum"], limit: 50 }
   );
 }
 
@@ -289,9 +290,9 @@ export async function getDelistedStatusIds(): Promise<{
   const all = await listGameStatuses();
   const matched: Array<{ id: number; label: string }> = [];
   for (const status of all) {
-    const label = (status.name || status.description || "").toLowerCase();
+    const label = (status.description || "").toLowerCase();
     if (/delist|offline|removed|pulled|withdrawn/.test(label)) {
-      matched.push({ id: status.id, label: status.name || status.description || `#${status.id}` });
+      matched.push({ id: status.id, label: status.description || `#${status.id}` });
     }
   }
   return { ids: matched.map((row) => row.id), matched, all };
