@@ -126,11 +126,19 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-[1280px] bg-[color:var(--paper)] pb-16">
-      {/* Hero search — first interactive element after the navbar */}
-      <div className="border-x border-[color:var(--ink)] bg-[color:var(--paper-2)] px-6 py-5">
+      {/* Hero search — first interactive element after the navbar.
+          Uses the page paper as the wrapper so the SearchBar's paper-2
+          fill reads against it (the previous version made both the
+          wrapper and the input the same tone — the search field
+          dissolved into its container). Double-rule top + bottom plus
+          the typewriter eyebrow keep it consistent with the rest of
+          the broadsheet sections. */}
+      <div className="border-x border-[color:var(--ink)] bg-[color:var(--paper)] px-6 py-6">
         <div className="mx-auto max-w-2xl">
-          <p className="mb-2 text-center font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
+          <p className="mb-3 text-center font-typewriter text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-3)]">
+            <span className="mr-2 align-middle text-[color:var(--rule)]">—</span>
             Find a delisted game
+            <span className="ml-2 align-middle text-[color:var(--rule)]">—</span>
           </p>
           <SearchBar
             placeholder="Search titles, platforms, or genres…"
