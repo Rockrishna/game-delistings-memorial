@@ -5,6 +5,7 @@ import Link from "next/link";
 import StatsCard from "@/components/home/StatsCard";
 import GameCard from "@/components/home/GameCard";
 import SearchBar from "@/components/common/SearchBar";
+import SearchFallback from "@/components/common/SearchFallback";
 
 type EventCard = {
   id: string;
@@ -361,9 +362,12 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <p className="mt-6 text-center font-serif italic text-[color:var(--ink-3)]">
-              No delistings match this filter.
-            </p>
+            <>
+              <p className="mt-6 text-center font-serif italic text-[color:var(--ink-3)]">
+                No delistings match this filter.
+              </p>
+              <SearchFallback query={searchQuery} />
+            </>
           )}
           <p className="mt-8 text-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
             <Link href="/mortuary" className="hover:text-[color:var(--accent)]">

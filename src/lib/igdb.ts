@@ -55,6 +55,8 @@ const GAME_FIELDS = [
   "summary",
   "first_release_date",
   "rating",
+  "status",
+  "updated_at",
   "cover.image_id",
   "artworks.image_id",
   "platforms.id",
@@ -228,7 +230,9 @@ async function buildAndQuery<T>(
   return rows;
 }
 
-export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDBGame | null> {
+export async function searchIGDBGameByName(name: string): Promise<
+  (NormalizedIGDBGame & { status?: number }) | null
+> {
   const rows = await buildAndQuery<IGDBGame>(
     "games",
     `games:search:${name.toLowerCase()}`,
@@ -238,7 +242,8 @@ export async function searchIGDBGameByName(name: string): Promise<NormalizedIGDB
   if (!rows.length) return null;
   const lower = name.toLowerCase();
   const exact = rows.find((row) => row.name.toLowerCase() === lower);
-  return normalizeRow(exact ?? rows[0]);
+  const row = exact ?? rows[0];
+  return { ...normalizeRow(row), status: row.status };
 }
 
 export async function fetchIGDBGamesByIds(ids: number[]): Promise<NormalizedIGDBGame[]> {

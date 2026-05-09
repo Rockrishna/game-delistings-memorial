@@ -114,3 +114,25 @@ model IgdbRequest {
   @@index([endpoint])
   @@index([fetchedAt])
 }
+
+// User-driven search cache: when a visitor searches for a game that isn't
+// in the catalogue, we fall through to IGDB and cache the result here for
+// 30 days. Page-level search consults this table BEFORE hitting IGDB.
+//
+// outcome: "added" | "not_delisted" | "not_found"
+//  added         — IGDB returned a delisted/offline match; we wrote it
+//                  to the catalogue and remember the IGDB id here
+//  not_delisted  — IGDB has the game but its status isn't delisted
+//  not_found     — IGDB had no match at all
+model UserSearchCache {
+  id           String    @id @default(cuid())
+  query        String    @unique // normalised lowercase search term
+  outcome      String
+  message      String
+  igdbGameId   Int?
+  matchedTitle String?
+  fetchedAt    DateTime  @default(now())
+  expiresAt    DateTime
+
+  @@index([expiresAt])
+}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SearchBar from "@/components/common/SearchBar";
+import SearchFallback from "@/components/common/SearchFallback";
 import Badge from "@/components/common/Badge";
 
 type TimelineGame = {
@@ -219,9 +220,12 @@ export default function TimelinePage() {
               Could not load timeline. {error}
             </p>
           ) : shownTimeline.length === 0 ? (
-            <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
-              No entries match these filters. Try widening the platform or status.
-            </p>
+            <>
+              <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
+                No entries match these filters. Try widening the platform or status.
+              </p>
+              <SearchFallback query={searchQuery} />
+            </>
           ) : (
             <div className="space-y-12">
               {shownTimeline.map((period) => {

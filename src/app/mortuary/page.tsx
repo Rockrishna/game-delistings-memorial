@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import SearchBar from "@/components/common/SearchBar";
+import SearchFallback from "@/components/common/SearchFallback";
 
 type MortuaryGame = {
   id: string;
@@ -197,9 +198,12 @@ export default function MortuaryPage() {
                 Could not load archive. {error}
               </p>
             ) : filteredGames.length === 0 ? (
-              <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
-                No records match these filters. Try widening the platform, cause, or decade.
-              </p>
+              <>
+                <p className="border border-dashed border-[color:var(--rule-soft)] bg-[color:var(--paper-2)] p-10 text-center font-serif italic text-[color:var(--ink-3)]">
+                  No records match these filters. Try widening the platform, cause, or decade.
+                </p>
+                <SearchFallback query={searchQuery} />
+              </>
             ) : (
               <>
                 <p className="mb-6 font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)]">
