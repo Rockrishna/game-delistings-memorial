@@ -1,39 +1,33 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { syncDelistedFromIGDB } from "@/lib/sync-delistings";
+import { syncCatalogFromIGDB } from "@/lib/sync-catalog";
 import { getIgdbCacheStats } from "@/lib/igdb";
 
 export const maxDuration = 300;
 
 /**
- * Status-driven IGDB ingestion.
+ * Status-driven IGDB ingestion → catalogue. Pages /v4/games filtered to
+ * delisted/offline statuses, enriches each (IGDB + RAWG fallback) and
+ * upserts. Idempotent: every IGDB/RAWG request is cached so re-runs cost
+ * nothing at the API edge.
  *
- * 1. GET /v4/game_statuses → find rows whose label means delisted/offline.
- * 2. Page /v4/games filtered to those status IDs (250/page, 20-page cap).
- * 3. Upsert Game/Platform/Genre and create a DELISTED DelistingEvent for
- *    every game we haven't already seen.
- *
- * Public + idempotent: every IGDB request is cached in the IgdbRequest
- * table so re-runs cost nothing at the API boundary. Existing DELISTED
- * events are detected and skipped, so re-running never duplicates rows.
- *
- * If you want to gate this behind auth, set INGEST_API_KEY and pass
- * `Authorization: Bearer <key>`; the route is open by default.
+ * GET reports config + counts. POST runs the sweep (?fresh=1 clears the
+ * request cache first to force live re-fetch).
  */
 export async function GET() {
-  const eventCount = await prisma.delistingEvent.count();
+  const gameCount = await prisma.game.count();
   const cache = await getIgdbCacheStats();
   return NextResponse.json({
     configured: {
       INGEST_API_KEY: !!env.INGEST_API_KEY,
       IGDB_CLIENT_ID: !!env.IGDB_CLIENT_ID,
       IGDB_CLIENT_SECRET: !!env.IGDB_CLIENT_SECRET,
+      RAWG_API_KEY: !!env.RAWG_API_KEY,
     },
-    eventCount,
+    gameCount,
     cache,
-    instructions:
-      "POST to ingest. While the database is empty, no auth is required (one-shot bootstrap). Otherwise pass `Authorization: Bearer <INGEST_API_KEY>`.",
+    instructions: "POST to ingest. Pass ?fresh=1 to bypass the request cache.",
   });
 }
 
@@ -51,10 +45,10 @@ export async function POST(request: Request) {
     if (fresh) {
       await prisma.igdbRequest.deleteMany({});
     }
-    const summary = await syncDelistedFromIGDB();
+    const summary = await syncCatalogFromIGDB();
     const cache = await getIgdbCacheStats();
-    const totalEvents = await prisma.delistingEvent.count();
-    return NextResponse.json({ ok: true, fresh, summary, cache, totalEvents });
+    const totalGames = await prisma.game.count();
+    return NextResponse.json({ ok: true, fresh, summary, cache, totalGames });
   } catch (error) {
     return NextResponse.json(
       {

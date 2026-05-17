@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -7,28 +8,64 @@ datasource db {
   url      = env("PRISMA_DATABASE_URL")
 }
 
-enum DelistingType {
-  RECENT
-  UPCOMING
-  DELISTED
-}
-
+// A delisted game, indexed as a catalogue record. There are NO delisting
+// dates: IGDB cannot reliably say *when* a title left a storefront, so the
+// product treats "delisted" as a status flag and focuses on attributes.
 model Game {
-  id             String          @id @default(cuid())
-  igdbId         Int?            @unique
-  slug           String          @unique
-  name           String
+  id     String @id @default(cuid())
+  igdbId Int?   @unique
+  slug   String @unique
+  name   String
+
+  // Library-style stable identifier shown on every record card (e.g. DG.823.4).
+  // Derived deterministically from igdbId so it never drifts between syncs.
+  callNumber String @unique
+
   summary        String?
   firstReleaseAt DateTime?
+  // Denormalised for fast faceting on the Catalog/Insights surfaces.
+  releaseYear    Int?
+  decade         String?
+
   coverUrl       String?
-  artworkUrls    String?
-  rating         Float?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  platforms      GamePlatform[]
-  genres         GameGenre[]
-  events         DelistingEvent[]
-  assets         MediaAsset[]
+  artworkUrls    String? // JSON-serialised string[]
+  screenshotUrls String? // JSON-serialised string[]
+
+  // IGDB scores (0–100). aggregated/total mirror IGDB's own fields.
+  rating           Float?
+  aggregatedRating Float?
+  totalRating      Float?
+  ratingCount      Int?
+  // RAWG fallback metric, only populated when IGDB lacks scores.
+  metacritic       Int?
+
+  publisher String?
+  developer String?
+
+  ageRatings String? // JSON-serialised { category: string; rating: string }[]
+  websites   String? // JSON-serialised { category: string; url: string }[]
+
+  // IGDB status enum: 5 = offline, 8 = delisted. statusLabel is the
+  // human-facing word used across the UI.
+  igdbStatus  Int?
+  statusLabel String @default("delisted")
+
+  // Which source filled publisher/developer when IGDB was sparse.
+  enrichedFrom String? // "igdb" | "igdb+rawg"
+
+  igdbUpdatedAt DateTime?
+  lastSyncedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  platforms GamePlatform[]
+  genres    GameGenre[]
+
+  @@index([releaseYear])
+  @@index([decade])
+  @@index([rating])
+  @@index([publisher])
 }
 
 model Platform {
@@ -43,12 +80,12 @@ model Platform {
 }
 
 model Genre {
-  id        String     @id @default(cuid())
-  igdbId    Int?       @unique
-  slug      String     @unique
+  id        String      @id @default(cuid())
+  igdbId    Int?        @unique
+  slug      String      @unique
   name      String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   games     GameGenre[]
 }
 
@@ -70,42 +107,6 @@ model GameGenre {
   @@id([gameId, genreId])
 }
 
-model DelistingEvent {
-  id          String        @id @default(cuid())
-  gameId      String
-  type        DelistingType
-  delistDate  DateTime
-  // Provenance for delistDate. One of:
-  //   "wikipedia" — extracted from a Wikipedia article (high confidence)
-  //   "steamdb"   — sourced from the SteamDB price-history scrape
-  //   "igdb"      — IGDB.updated_at proxy; approximate, surfaced with a
-  //                 disclaimer in the UI
-  //   null        — unset (older rows pre-dating the source field)
-  delistDateSource String?
-  announcedAt DateTime?
-  reason      String?
-  sourceUrl   String?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  game        Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
-
-  @@index([type, delistDate])
-}
-
-model MediaAsset {
-  id        String   @id @default(cuid())
-  gameId     String
-  type      String
-  url       String
-  width     Int?
-  height    Int?
-  createdAt DateTime @default(now())
-  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-
-  @@index([gameId, type])
-}
-
 // Generic request cache for IGDB (apicalypse) queries. Anything that hits
 // api.igdb.com goes through this so we never re-issue the same query within
 // its TTL — cuts API usage to near zero once the catalogue is warm.
@@ -114,7 +115,7 @@ model IgdbRequest {
   cacheKey  String    @unique
   endpoint  String
   query     String
-  response  String    // JSON-serialized response body
+  response  String
   fetchedAt DateTime  @default(now())
   expiresAt DateTime?
 
@@ -127,18 +128,14 @@ model IgdbRequest {
 // 30 days. Page-level search consults this table BEFORE hitting IGDB.
 //
 // outcome: "added" | "not_delisted" | "not_found"
-//  added         — IGDB returned a delisted/offline match; we wrote it
-//                  to the catalogue and remember the IGDB id here
-//  not_delisted  — IGDB has the game but its status isn't delisted
-//  not_found     — IGDB had no match at all
 model UserSearchCache {
-  id           String    @id @default(cuid())
-  query        String    @unique // normalised lowercase search term
+  id           String   @id @default(cuid())
+  query        String   @unique
   outcome      String
   message      String
   igdbGameId   Int?
   matchedTitle String?
-  fetchedAt    DateTime  @default(now())
+  fetchedAt    DateTime @default(now())
   expiresAt    DateTime
 
   @@index([expiresAt])

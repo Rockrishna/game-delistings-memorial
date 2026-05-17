@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { fetchIGDBGamesByIds } from "@/lib/igdb";
+import { callNumberFor } from "@/lib/sync-catalog";
 
 export const maxDuration = 60;
 
@@ -41,27 +42,38 @@ export async function POST(request: NextRequest) {
     console.log(`[ingest/igdb] Fetched ${games.length} games from IGDB for ids: ${ids.join(",")}`);
 
     for (const item of games) {
+      const releaseYear = item.firstReleaseAt
+        ? item.firstReleaseAt.getUTCFullYear()
+        : null;
+      const data = {
+        slug: item.slug,
+        name: item.name,
+        callNumber: callNumberFor(item.igdbId),
+        summary: item.summary,
+        firstReleaseAt: item.firstReleaseAt,
+        releaseYear,
+        decade: releaseYear ? `${Math.floor(releaseYear / 10) * 10}s` : null,
+        coverUrl: item.coverUrl,
+        artworkUrls: JSON.stringify(item.artworkUrls),
+        screenshotUrls: JSON.stringify(item.screenshotUrls),
+        rating: item.rating,
+        aggregatedRating: item.aggregatedRating,
+        totalRating: item.totalRating,
+        ratingCount: item.ratingCount,
+        publisher: item.publisher,
+        developer: item.developer,
+        ageRatings: JSON.stringify(item.ageRatings),
+        websites: JSON.stringify(item.websites),
+        igdbStatus: item.status,
+        statusLabel: item.status === 5 ? "offline" : "delisted",
+        enrichedFrom: "igdb",
+        lastSyncedAt: new Date(),
+      };
+
       const game = await prisma.game.upsert({
         where: { igdbId: item.igdbId },
-        update: {
-          slug: item.slug,
-          name: item.name,
-          summary: item.summary,
-          firstReleaseAt: item.firstReleaseAt,
-          coverUrl: item.coverUrl,
-          artworkUrls: JSON.stringify(item.artworkUrls),
-          rating: item.rating,
-        },
-        create: {
-          igdbId: item.igdbId,
-          slug: item.slug,
-          name: item.name,
-          summary: item.summary,
-          firstReleaseAt: item.firstReleaseAt,
-          coverUrl: item.coverUrl,
-          artworkUrls: JSON.stringify(item.artworkUrls),
-          rating: item.rating,
-        },
+        update: data,
+        create: { igdbId: item.igdbId, ...data },
       });
 
       await prisma.gamePlatform.deleteMany({ where: { gameId: game.id } });
@@ -90,15 +102,8 @@ export async function POST(request: NextRequest) {
       for (const genre of item.genres) {
         const dbGenre = await prisma.genre.upsert({
           where: { slug: genre.slug },
-          update: {
-            igdbId: genre.igdbId ?? null,
-            name: genre.name,
-          },
-          create: {
-            igdbId: genre.igdbId ?? null,
-            slug: genre.slug,
-            name: genre.name,
-          },
+          update: { igdbId: genre.igdbId ?? null, name: genre.name },
+          create: { igdbId: genre.igdbId ?? null, slug: genre.slug, name: genre.name },
         });
         await prisma.gameGenre.create({
           data: { gameId: game.id, genreId: dbGenre.id },

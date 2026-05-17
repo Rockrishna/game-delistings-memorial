@@ -3,7 +3,7 @@
   "buildCommand": "npm run prisma:migrate && npm run build",
   "crons": [
     {
-      "path": "/api/cron/sync-delistings",
+      "path": "/api/cron/sync-catalog",
       "schedule": "0 6 * * *"
     }
   ]

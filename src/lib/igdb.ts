@@ -4,6 +4,15 @@ import { prisma } from "@/lib/prisma";
 const TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token";
 const IGDB_API_URL = "https://api.igdb.com/v4";
 
+type IGDBCompany = {
+  company?: { name?: string };
+  publisher?: boolean;
+  developer?: boolean;
+};
+
+type IGDBAgeRating = { category?: number; rating?: number };
+type IGDBWebsite = { category?: number; url?: string };
+
 type IGDBGame = {
   id: number;
   name: string;
@@ -11,20 +20,73 @@ type IGDBGame = {
   summary?: string;
   first_release_date?: number;
   rating?: number;
+  rating_count?: number;
+  aggregated_rating?: number;
+  total_rating?: number;
+  total_rating_count?: number;
   status?: number;
   updated_at?: number;
   cover?: { image_id: string };
   artworks?: Array<{ image_id: string }>;
+  screenshots?: Array<{ image_id: string }>;
   platforms?: Array<{ id: number; name: string; abbreviation?: string; slug?: string }>;
   genres?: Array<{ id: number; name: string; slug?: string }>;
+  involved_companies?: IGDBCompany[];
+  age_ratings?: IGDBAgeRating[];
+  websites?: IGDBWebsite[];
 };
 
 type IGDBGameStatus = {
   id: number;
-  // IGDB v4 only exposes description / checksum on this endpoint — there
-  // is no public `name` field; querying it returns 400 Invalid Field.
   description?: string;
   checksum?: string;
+};
+
+// IGDB v4 enum → label maps. Kept small and explicit; unknown values pass
+// through as `cat:<n>` so we never silently drop data.
+const AGE_RATING_CATEGORY: Record<number, string> = {
+  1: "ESRB",
+  2: "PEGI",
+  3: "CERO",
+  4: "USK",
+  5: "GRAC",
+  6: "CLASS_IND",
+  7: "ACB",
+};
+
+const AGE_RATING_VALUE: Record<number, string> = {
+  1: "Three",
+  2: "Seven",
+  3: "Twelve",
+  4: "Sixteen",
+  5: "Eighteen",
+  6: "RP",
+  7: "EC",
+  8: "E",
+  9: "E10+",
+  10: "T",
+  11: "M",
+  12: "AO",
+};
+
+const WEBSITE_CATEGORY: Record<number, string> = {
+  1: "Official",
+  2: "Wikia",
+  3: "Wikipedia",
+  4: "Facebook",
+  5: "Twitter",
+  6: "Twitch",
+  8: "Instagram",
+  9: "YouTube",
+  10: "iPhone",
+  11: "iPad",
+  12: "Android",
+  13: "Steam",
+  14: "Reddit",
+  15: "Itch",
+  16: "EpicGames",
+  17: "GOG",
+  18: "Discord",
 };
 
 let tokenCache: { value: string; expiresAt: number } | null = null;
@@ -56,10 +118,15 @@ const GAME_FIELDS = [
   "summary",
   "first_release_date",
   "rating",
+  "rating_count",
+  "aggregated_rating",
+  "total_rating",
+  "total_rating_count",
   "status",
   "updated_at",
   "cover.image_id",
   "artworks.image_id",
+  "screenshots.image_id",
   "platforms.id",
   "platforms.name",
   "platforms.abbreviation",
@@ -67,6 +134,13 @@ const GAME_FIELDS = [
   "genres.id",
   "genres.name",
   "genres.slug",
+  "involved_companies.company.name",
+  "involved_companies.publisher",
+  "involved_companies.developer",
+  "age_ratings.category",
+  "age_ratings.rating",
+  "websites.category",
+  "websites.url",
 ];
 
 function imageUrlFromId(imageId: string, size = "t_cover_big") {
@@ -80,8 +154,16 @@ export type NormalizedIGDBGame = {
   summary?: string;
   firstReleaseAt?: Date;
   rating?: number;
+  ratingCount?: number;
+  aggregatedRating?: number;
+  totalRating?: number;
   coverUrl?: string;
   artworkUrls: string[];
+  screenshotUrls: string[];
+  publisher?: string;
+  developer?: string;
+  ageRatings: Array<{ category: string; rating: string }>;
+  websites: Array<{ category: string; url: string }>;
   platforms: Array<{ igdbId: number; name: string; abbreviation?: string; slug: string }>;
   genres: Array<{ igdbId: number; name: string; slug: string }>;
 };
@@ -94,6 +176,12 @@ function toSlug(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function pickCompany(companies: IGDBCompany[] | undefined, kind: "publisher" | "developer") {
+  if (!companies?.length) return undefined;
+  const match = companies.find((c) => c[kind] && c.company?.name);
+  return match?.company?.name;
+}
+
 function normalizeRow(row: IGDBGame): NormalizedIGDBGame {
   return {
     igdbId: row.id,
@@ -104,8 +192,28 @@ function normalizeRow(row: IGDBGame): NormalizedIGDBGame {
       ? new Date(row.first_release_date * 1000)
       : undefined,
     rating: row.rating,
+    ratingCount: row.rating_count,
+    aggregatedRating: row.aggregated_rating,
+    totalRating: row.total_rating,
     coverUrl: row.cover?.image_id ? imageUrlFromId(row.cover.image_id) : undefined,
-    artworkUrls: (row.artworks ?? []).map((art) => imageUrlFromId(art.image_id, "t_screenshot_huge")),
+    artworkUrls: (row.artworks ?? []).map((a) => imageUrlFromId(a.image_id, "t_screenshot_huge")),
+    screenshotUrls: (row.screenshots ?? []).map((s) =>
+      imageUrlFromId(s.image_id, "t_screenshot_huge")
+    ),
+    publisher: pickCompany(row.involved_companies, "publisher"),
+    developer: pickCompany(row.involved_companies, "developer"),
+    ageRatings: (row.age_ratings ?? [])
+      .filter((a) => a.category != null && a.rating != null)
+      .map((a) => ({
+        category: AGE_RATING_CATEGORY[a.category as number] ?? `cat:${a.category}`,
+        rating: AGE_RATING_VALUE[a.rating as number] ?? `r:${a.rating}`,
+      })),
+    websites: (row.websites ?? [])
+      .filter((w) => w.url)
+      .map((w) => ({
+        category: WEBSITE_CATEGORY[w.category as number] ?? "Link",
+        url: w.url as string,
+      })),
     platforms: (row.platforms ?? []).map((platform) => ({
       igdbId: platform.id,
       name: platform.name,
@@ -126,8 +234,7 @@ const THIRTY_DAYS_MS = 30 * ONE_DAY_MS;
 /**
  * Read-through, write-through cache for any IGDB request. The cacheKey is
  * the dedupe identity; ttlMs is freshness. Cache table lives in Postgres
- * (model IgdbRequest) so all serverless instances + cold starts share it,
- * which means a popular query hits the IGDB API once across the whole fleet.
+ * (model IgdbRequest) so all serverless instances + cold starts share it.
  */
 async function cachedRequest<T>(opts: {
   cacheKey: string;
@@ -195,11 +302,8 @@ async function cachedRequest<T>(opts: {
 }
 
 /**
- * Compose an apicalypse query body manually. The Builder in the apicalypse
- * package strips whitespace inside `fields` lists and IGDB v4's parser then
- * rejects the comma-joined result with a 400 ("Expecting `EOF`, `;`, found
- * `,foo,bar`"). Manual composition with explicit `, ` separators sidesteps
- * the issue and keeps the apicalypse import for typing only.
+ * Compose an apicalypse query body manually. IGDB v4's parser rejects the
+ * comma-joined output of the apicalypse Builder, so we compose by hand.
  */
 type QueryParts = {
   fields?: string[];
@@ -232,24 +336,16 @@ async function buildAndQuery<T>(
 }
 
 /**
- * Search IGDB by name and return the single best candidate. Used by the
- * user-driven `/api/search/igdb` flow: the caller wants to know whether
- * the title is delisted, so when several IGDB rows share the same name
- * (multiple games called "Anthem", etc.) we bias selection toward the
- * one tagged with a delisted status — otherwise the wrong "Anthem"
- * surfaces first and gets cached as not_delisted forever.
- *
- * Selection priority: exact-name & delisted > any delisted match
- *   > exact-name > first row.
+ * Search IGDB by name and return the single best candidate, biased toward a
+ * delisted/offline match so the user-search fallback doesn't pick the wrong
+ * same-named title.
  */
 export async function searchIGDBGameByName(name: string): Promise<
   (NormalizedIGDBGame & { status?: number; updatedAtSeconds?: number }) | null
 > {
   const rows = await buildAndQuery<IGDBGame>(
     "games",
-    // Cache key includes :l10 so old :l5-shaped cache entries from the
-    // previous selection logic don't get reused for fresh lookups.
-    `games:search:${name.toLowerCase()}:l10`,
+    `games:search:${name.toLowerCase()}:enriched:l10`,
     THIRTY_DAYS_MS,
     { fields: GAME_FIELDS, search: name, limit: 10 }
   );
@@ -273,7 +369,7 @@ export async function fetchIGDBGamesByIds(
   const sortedIds = [...ids].sort((a, b) => a - b);
   const rows = await buildAndQuery<IGDBGame>(
     "games",
-    `games:ids:${sortedIds.join(",")}`,
+    `games:ids:${sortedIds.join(",")}:enriched`,
     THIRTY_DAYS_MS,
     {
       fields: GAME_FIELDS,
@@ -288,15 +384,8 @@ export async function fetchIGDBGamesByIds(
   }));
 }
 
-/**
- * Fetch the IGDB game_status lookup table. Tiny (single-digit rows) and
- * rarely changes — caches for 30 days.
- */
+/** Fetch the IGDB game_status lookup table. Tiny and rarely changes. */
 export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
-  // `fields *` returns every available column on the row regardless of what
-  // the schema is documented to contain — IGDB v4 game_statuses doesn't
-  // expose `name` or `description`, only id + checksum, so we let the API
-  // tell us what's there.
   return buildAndQuery<IGDBGameStatus>(
     "game_statuses",
     "game_statuses:all",
@@ -306,17 +395,8 @@ export async function listGameStatuses(): Promise<IGDBGameStatus[]> {
 }
 
 /**
- * IGDB v4 `Game.status` enum values that mean "no longer for sale".
- *
- * Per the documented enum on the games endpoint:
- *   0 released   2 alpha   3 beta   4 early_access
- *   5 offline    6 cancelled   7 rumored   8 delisted
- *
- * We previously had this set to {2, 7} after a misread of the
- * /v4/game_statuses endpoint — that pulled alpha + rumored games into the
- * catalogue and made every legitimately-delisted title (e.g. Anthem,
- * status=8) come back as "not_delisted" through the user search. The
- * correct values are 5 (offline) and 8 (delisted).
+ * IGDB v4 `Game.status` enum values that mean "no longer for sale":
+ *   5 = offline, 8 = delisted.
  */
 const DELISTED_STATUS_IDS: Array<{ id: number; label: string }> = [
   { id: 5, label: "Offline" },
@@ -328,9 +408,6 @@ export async function getDelistedStatusIds(): Promise<{
   matched: Array<{ id: number; label: string }>;
   all: IGDBGameStatus[];
 }> {
-  // Best-effort: still query game_statuses so the cache table records that
-  // we considered it; ignore failures (the endpoint sometimes 400s when
-  // querying any non-id field, depending on IGDB API version).
   let all: IGDBGameStatus[] = [];
   try {
     all = await listGameStatuses();
@@ -347,17 +424,16 @@ export async function getDelistedStatusIds(): Promise<{
 /**
  * Page through /v4/games filtered to a set of status IDs. Each page is
  * cached separately so resuming a partial sync doesn't re-bill IGDB.
- *
- * `since` (UNIX seconds) narrows the query to games whose `updated_at`
- * has changed after that timestamp — used by the daily cron to fetch
- * only newly-flagged delistings instead of paging the whole set.
  */
 export async function fetchGamesByStatus(opts: {
   statusIds: number[];
   offset: number;
   limit: number;
   since?: number;
-}): Promise<{ games: NormalizedIGDBGame[]; rawUpdatedAt: Map<number, number> }> {
+}): Promise<{
+  games: Array<NormalizedIGDBGame & { status?: number }>;
+  rawUpdatedAt: Map<number, number>;
+}> {
   const { statusIds, offset, limit, since } = opts;
   if (!statusIds.length) return { games: [], rawUpdatedAt: new Map() };
   const sorted = [...statusIds].sort((a, b) => a - b);
@@ -366,36 +442,27 @@ export async function fetchGamesByStatus(opts: {
   if (typeof since === "number" && since > 0) {
     whereClauses.push(`updated_at > ${Math.floor(since)}`);
   }
-  // Cache key bakes in the since cursor so two cron runs starting at
-  // different timestamps stay separate (and a fresh full sync always
-  // bypasses incremental cache rows).
-  const cacheKey = `games:status:${sorted.join(",")}${since ? `:since${Math.floor(since)}` : ""}:o${offset}:l${limit}`;
+  const cacheKey = `games:status:${sorted.join(",")}${since ? `:since${Math.floor(since)}` : ""}:o${offset}:l${limit}:enriched`;
 
-  const rows = await buildAndQuery<IGDBGame>(
-    "games",
-    cacheKey,
-    7 * ONE_DAY_MS,
-    {
-      fields: [...GAME_FIELDS, "status", "updated_at"],
-      where: whereClauses.join(" & "),
-      limit,
-      offset,
-    }
-  );
+  const rows = await buildAndQuery<IGDBGame>("games", cacheKey, 7 * ONE_DAY_MS, {
+    fields: GAME_FIELDS,
+    where: whereClauses.join(" & "),
+    limit,
+    offset,
+  });
 
   const rawUpdatedAt = new Map<number, number>();
   for (const row of rows) {
     if (row.updated_at) rawUpdatedAt.set(row.id, row.updated_at);
   }
 
-  return { games: rows.map(normalizeRow), rawUpdatedAt };
+  return {
+    games: rows.map((row) => ({ ...normalizeRow(row), status: row.status })),
+    rawUpdatedAt,
+  };
 }
 
-/**
- * Stats over the IGDB request cache itself — surfaced on the home page so
- * users can see how much we're hitting the live API vs. serving from
- * Postgres.
- */
+/** Stats over the IGDB request cache itself — surfaced in the UI. */
 export async function getIgdbCacheStats() {
   try {
     const [totalRequests, lastSync, latestEndpointGroups] = await Promise.all([
@@ -419,6 +486,10 @@ export async function getIgdbCacheStats() {
       })),
     };
   } catch {
-    return { totalRequests: 0, lastSyncAt: null, byEndpoint: [] as Array<{ endpoint: string; count: number }> };
+    return {
+      totalRequests: 0,
+      lastSyncAt: null,
+      byEndpoint: [] as Array<{ endpoint: string; count: number }>,
+    };
   }
 }

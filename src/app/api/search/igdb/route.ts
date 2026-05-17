@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { DelistingType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { searchIGDBGameByName, getDelistedStatusIds } from "@/lib/igdb";
-import { resolveDelistDate } from "@/lib/delist-date-lookup";
+import { callNumberFor } from "@/lib/sync-catalog";
+import { fetchRawgFallback } from "@/lib/rawg";
 
 export const maxDuration = 60;
 
@@ -16,21 +16,9 @@ function normalize(query: string) {
 }
 
 /**
- * User-driven IGDB fallback search.
- *
- * Flow when the visitor's term has no DB match:
- *   1. Read UserSearchCache(query=normalised) — if a fresh row exists,
- *      return it untouched (no IGDB call).
- *   2. Otherwise, call searchIGDBGameByName(query) — itself cached in
- *      IgdbRequest, so duplicate queries across users coalesce.
- *   3. If IGDB has a hit AND the game's status is delisted/offline, upsert
- *      the Game and create a DELISTED DelistingEvent — visitor reloads to
- *      see it. outcome = "added".
- *   4. If IGDB has a hit but the status isn't delisted, return
- *      outcome = "not_delisted" with a message.
- *   5. If IGDB has no hit at all, outcome = "not_found".
- *
- * Each outcome is cached in UserSearchCache for 30 days.
+ * User-driven IGDB fallback search. When the visitor's term has no DB
+ * match we ask IGDB; if it's a delisted/offline title we enrich and add
+ * it to the catalogue. Every outcome is cached for 30 days.
  */
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as { query?: string } | null;
@@ -45,7 +33,6 @@ export async function POST(request: NextRequest) {
   const query = normalize(raw);
   const now = Date.now();
 
-  // Cache hit → respond immediately
   const cached = await prisma.userSearchCache.findUnique({ where: { query } });
   if (cached && cached.expiresAt.getTime() > now) {
     return NextResponse.json({
@@ -65,12 +52,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Already in our catalogue? Then there's nothing to do.
   const existing = await prisma.game.findFirst({
     where: { name: { equals: raw, mode: "insensitive" } },
-    include: { events: { where: { type: DelistingType.DELISTED }, take: 1 } },
   });
-  if (existing && existing.events.length > 0) {
+  if (existing) {
     const message = `${existing.name} is already in the catalogue.`;
     await persist(query, "already_in_catalogue", message, existing.igdbId, existing.name);
     return NextResponse.json({
@@ -107,28 +92,51 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Add to catalogue
+  const releaseYear = igdb.firstReleaseAt
+    ? igdb.firstReleaseAt.getUTCFullYear()
+    : null;
+  let publisher = igdb.publisher;
+  let developer = igdb.developer;
+  let metacritic: number | undefined;
+  let enrichedFrom = "igdb";
+  if (!publisher || !developer) {
+    const rawg = await fetchRawgFallback(igdb.name);
+    publisher = publisher ?? rawg.publisher;
+    developer = developer ?? rawg.developer;
+    metacritic = rawg.metacritic;
+    if (rawg.publisher || rawg.developer) enrichedFrom = "igdb+rawg";
+  }
+
+  const data = {
+    slug: igdb.slug,
+    name: igdb.name,
+    callNumber: callNumberFor(igdb.igdbId),
+    summary: igdb.summary,
+    firstReleaseAt: igdb.firstReleaseAt,
+    releaseYear,
+    decade: releaseYear ? `${Math.floor(releaseYear / 10) * 10}s` : null,
+    coverUrl: igdb.coverUrl,
+    artworkUrls: JSON.stringify(igdb.artworkUrls),
+    screenshotUrls: JSON.stringify(igdb.screenshotUrls),
+    rating: igdb.rating,
+    aggregatedRating: igdb.aggregatedRating,
+    totalRating: igdb.totalRating,
+    ratingCount: igdb.ratingCount,
+    metacritic,
+    publisher,
+    developer,
+    ageRatings: JSON.stringify(igdb.ageRatings),
+    websites: JSON.stringify(igdb.websites),
+    igdbStatus: igdb.status,
+    statusLabel: igdb.status === 5 ? "offline" : "delisted",
+    enrichedFrom,
+    lastSyncedAt: new Date(),
+  };
+
   const game = await prisma.game.upsert({
     where: { igdbId: igdb.igdbId },
-    update: {
-      slug: igdb.slug,
-      name: igdb.name,
-      summary: igdb.summary,
-      firstReleaseAt: igdb.firstReleaseAt,
-      coverUrl: igdb.coverUrl,
-      artworkUrls: JSON.stringify(igdb.artworkUrls),
-      rating: igdb.rating,
-    },
-    create: {
-      igdbId: igdb.igdbId,
-      slug: igdb.slug,
-      name: igdb.name,
-      summary: igdb.summary,
-      firstReleaseAt: igdb.firstReleaseAt,
-      coverUrl: igdb.coverUrl,
-      artworkUrls: JSON.stringify(igdb.artworkUrls),
-      rating: igdb.rating,
-    },
+    update: data,
+    create: { igdbId: igdb.igdbId, ...data },
   });
 
   await prisma.gamePlatform.deleteMany({ where: { gameId: game.id } });
@@ -154,30 +162,6 @@ export async function POST(request: NextRequest) {
       create: { igdbId: genre.igdbId, slug: genre.slug, name: genre.name },
     });
     await prisma.gameGenre.create({ data: { gameId: game.id, genreId: dbGenre.id } });
-  }
-
-  const existingEvent = await prisma.delistingEvent.findFirst({
-    where: { gameId: game.id, type: DelistingType.DELISTED },
-  });
-  if (!existingEvent) {
-    // Same provenance pipeline used by the bulk sync — Wikipedia →
-    // SteamDB stub → IGDB updated_at. The source string is persisted so
-    // the UI can flag IGDB-derived dates as approximate.
-    const resolved = await resolveDelistDate({
-      igdbName: igdb.name,
-      igdbSlug: igdb.slug,
-      igdbUpdatedAtSeconds: igdb.updatedAtSeconds,
-    });
-    await prisma.delistingEvent.create({
-      data: {
-        gameId: game.id,
-        type: DelistingType.DELISTED,
-        delistDate: resolved.date,
-        delistDateSource: resolved.source,
-        reason: "Marked offline/delisted by IGDB.",
-        sourceUrl: `https://www.igdb.com/games/${igdb.slug}`,
-      },
-    });
   }
 
   const message = `Added ${igdb.name} to the catalogue. Reload to see it.`;
