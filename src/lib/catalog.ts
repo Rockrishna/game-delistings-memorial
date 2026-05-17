@@ -255,6 +255,65 @@ export async function getInsights() {
   const topPlatform = [...familyCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
   const topDecade = [...decadeCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
 
+  const topGenre = [...genreCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  const topPublisher = [...publisherCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  const earliestDecade = [...decadeCounts.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0])
+  )[0] ?? null;
+  const acclaimed = ratings.filter((r) => r >= 80).length;
+  const lowRated = ratings.filter((r) => r < 60).length;
+
+  const enc = encodeURIComponent;
+  const attributePatterns = [
+    topGenre && {
+      count: topGenre[1],
+      title: `${topGenre[0]} dominated`,
+      blurb: `The genre with the most withdrawn titles in the catalogue.`,
+      href: `/catalog?genre=${enc(topGenre[0])}`,
+    },
+    topPlatform && {
+      count: topPlatform[1],
+      title: `${topPlatform[0]} casualties`,
+      blurb: `More games left this storefront than any other.`,
+      href: `/catalog?platform=${enc(topPlatform[0])}`,
+    },
+    topDecade && {
+      count: topDecade[1],
+      title: `The ${topDecade[0]} were hit hardest`,
+      blurb: `The release decade that lost the most titles.`,
+      href: `/catalog?decade=${enc(topDecade[0])}`,
+    },
+    topPublisher && {
+      count: topPublisher[1],
+      title: `${topPublisher[0]} lost the most`,
+      blurb: `The publisher with the largest delisted back-catalogue.`,
+      href: `/catalog?publisher=${enc(topPublisher[0])}`,
+    },
+    {
+      count: acclaimed,
+      title: `Acclaimed yet pulled`,
+      blurb: `Delisted games that still scored 80+ on IGDB.`,
+      href: `/catalog?rating=${enc("≥ 90")}&rating=${enc("80–89")}`,
+    },
+    earliestDecade && {
+      count: earliestDecade[1],
+      title: `Legacy losses · ${earliestDecade[0]}`,
+      blurb: `The oldest cohort of withdrawn titles still on record.`,
+      href: `/catalog?decade=${enc(earliestDecade[0])}`,
+    },
+    {
+      count: lowRated,
+      title: `Quietly forgotten`,
+      blurb: `Lower-rated titles (under 60) that slipped away.`,
+      href: `/catalog?rating=${enc("< 60")}`,
+    },
+  ].filter(Boolean) as Array<{
+    count: number;
+    title: string;
+    blurb: string;
+    href: string;
+  }>;
+
   const histBuckets = [
     { bucket: "0–20", lo: 0, hi: 20 },
     { bucket: "20–40", lo: 20, hi: 40 },
@@ -291,6 +350,7 @@ export async function getInsights() {
       .slice(0, 8)
       .map(([name, count]) => ({ name, count })),
     ratingHist: histBuckets,
+    attributePatterns,
   };
 }
 

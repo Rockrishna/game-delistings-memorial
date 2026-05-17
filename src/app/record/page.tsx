@@ -20,7 +20,7 @@ export default async function RecordIndexPage() {
           its IGDB link sheet.
         </p>
       </div>
-      <div style={{ padding: "16px 28px 32px", display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, rowGap: 18 }}>
+      <div className="cardgrid tight" style={{ padding: "16px 28px 32px" }}>
         {sample.rows.map((g) => (
           <Link key={g.slug} href={`/record/${g.slug}`} className="indexcard" style={{ padding: 10 }}>
             <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>{g.callNumber}</div>

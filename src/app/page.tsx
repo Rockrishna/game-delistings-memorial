@@ -1,5 +1,6 @@
 import Link from "next/link";
 import UShell from "@/components/shell/UShell";
+import HomeStream from "@/components/home/HomeStream";
 import { getOverview } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function OverviewPage() {
 
   return (
     <UShell total={o.total}>
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", borderBottom: "1px solid var(--rule)" }}>
+      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", borderBottom: "1px solid var(--rule)" }}>
         <div style={{ padding: "32px 36px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap" style={{ color: "var(--accent)" }}>THE COLLECTION · AS OF TODAY</div>
           <div className="bignum" style={{ margin: "10px 0 4px" }}>{o.total.toLocaleString()}</div>
@@ -63,7 +64,7 @@ export default async function OverviewPage() {
 
       <div style={{ padding: "28px 36px" }}>
         <div className="strap" style={{ marginBottom: 14 }}>WHERE TO BEGIN</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16 }}>
+        <div className="cardgrid">
           {begin.map((c, i) => (
             <Link key={c.t} href={c.href} className="indexcard">
               <div className="deweycall">CARD · {String(i + 1).padStart(3, "0")}</div>
@@ -73,6 +74,13 @@ export default async function OverviewPage() {
             </Link>
           ))}
         </div>
+      </div>
+
+      <div style={{ padding: "8px 36px 48px", borderTop: "1px solid var(--rule)" }}>
+        <div className="strap" style={{ margin: "20px 0 14px" }}>
+          FROM THE STACKS · BROWSE WITHOUT END
+        </div>
+        <HomeStream />
       </div>
     </UShell>
   );

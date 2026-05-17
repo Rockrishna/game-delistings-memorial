@@ -52,7 +52,7 @@ export default async function InsightsPage() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", borderBottom: "1px solid var(--rule)" }}>
+      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", borderBottom: "1px solid var(--rule)" }}>
         {headline.map(([k, v, sub, href], idx) => {
           const inner = (
             <>
@@ -72,7 +72,7 @@ export default async function InsightsPage() {
       <div style={{ padding: "30px 36px 24px" }}>
         <div className="strap">DISPLAY I · PLATFORM × DECADE</div>
         <h3 className="font-serif" style={{ fontSize: 26, fontWeight: 600, margin: "4px 0 18px" }}>Where the casualties accumulated</h3>
-        <div style={{ border: "1px solid var(--ink)", padding: "24px 28px", background: "var(--paper-2)" }}>
+        <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: "24px 28px", background: "var(--paper-2)" }}>
           <div className="heat-grid" style={{ ["--cols" as string]: i.heatmap.decades.length }}>
             <div className="heat-h first">PLATFORM</div>
             {i.heatmap.decades.map((d) => (<div key={d} className="heat-h">{d}</div>))}
@@ -107,7 +107,7 @@ export default async function InsightsPage() {
           </div>
           <span className="font-serif muted" style={{ fontStyle: "italic" }}>area ∝ count · click to filter</span>
         </div>
-        <div style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
+        <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
           <div className="treemap">
             {i.byGenre.map((t, idx) => {
               const s = TILE_SPANS[idx] ?? { col: 3, row: 1, c: "t-soft" };
@@ -127,7 +127,7 @@ export default async function InsightsPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", borderTop: "1px solid var(--rule)" }}>
+      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap">DISPLAY III · RATING DISTRIBUTION</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 16px" }}>Were they good?</h3>
@@ -150,6 +150,33 @@ export default async function InsightsPage() {
               <span className="bar-name">{p.name}</span>
               <span className="bar-track"><span className="bar-fill accent" style={{ width: `${(p.count / pubMax) * 100}%` }} /></span>
               <span className="bar-count">{p.count}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: "24px 36px 40px", borderTop: "1px solid var(--rule)" }}>
+        <div className="strap">DISPLAY V · ATTRIBUTE PATTERNS</div>
+        <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 4px" }}>
+          What the metadata tells us
+        </h3>
+        <p className="font-serif muted" style={{ fontStyle: "italic", margin: "0 0 18px", fontSize: 13 }}>
+          Recurring shapes in the catalogue, drawn from genre, platform,
+          decade, publisher and rating. Open any one in the catalog.
+        </p>
+        <div className="cardgrid">
+          {i.attributePatterns.map((p) => (
+            <Link
+              key={p.title}
+              href={p.href}
+              style={{ padding: "18px 20px", border: "1px solid var(--ink)", background: "var(--paper-2)", display: "block" }}
+            >
+              <div className="font-display" style={{ fontSize: 36, fontWeight: 900, lineHeight: 1, letterSpacing: "-0.01em" }}>
+                {p.count.toLocaleString()}
+              </div>
+              <div className="font-serif" style={{ fontWeight: 600, fontSize: 15, marginTop: 8 }}>{p.title}</div>
+              <div className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{p.blurb}</div>
+              <div className="accent font-typewriter" style={{ fontSize: 10, letterSpacing: "0.1em", marginTop: 12 }}>open in catalog →</div>
             </Link>
           ))}
         </div>

@@ -38,7 +38,7 @@ export default async function RecordPage({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr 260px", borderTop: "1px solid var(--rule)" }}>
+      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "320px 1fr 260px", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: 24, borderRight: "1px solid var(--rule)" }}>
           <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
             {g.coverUrl ? (
@@ -99,7 +99,7 @@ export default async function RecordPage({
             <>
               <hr className="hr" style={{ margin: "22px 0" }} />
               <div className="strap">ADJACENT CARDS · SAME PUBLISHER / DECADE</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginTop: 10 }}>
+              <div className="cardgrid tight" style={{ marginTop: 10 }}>
                 {g.adjacent.map((x) => (
                   <Link key={x.slug} href={`/record/${x.slug}`} className="indexcard" style={{ padding: 8 }}>
                     <div className={`cover ${x.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>

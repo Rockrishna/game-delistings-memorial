@@ -256,7 +256,7 @@ export default function CatalogBrowser() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr" }}>
+      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "280px 1fr" }}>
         <aside style={{ borderRight: "1.5px solid var(--ink)", padding: "18px 20px 24px" }}>
           <div className="strap accent" style={{ marginBottom: 6 }}>
             ACTIVE FILTERS · {activeChips.length}
@@ -321,7 +321,7 @@ export default function CatalogBrowser() {
           </div>
 
           {mode === "simple" ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, rowGap: 18 }}>
+            <div className="cardgrid tight">
               {(data?.rows ?? []).map((g) => (
                 <Link key={g.slug} href={`/record/${g.slug}`} className="indexcard" style={{ padding: 10 }}>
                   <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>{g.callNumber}</div>
@@ -341,7 +341,7 @@ export default function CatalogBrowser() {
               ))}
             </div>
           ) : (
-            <table className="ledger">
+            <div className="scroll-x"><table className="ledger">
               <thead>
                 <tr>
                   <th style={{ width: 80 }}>Call no.</th>
@@ -369,7 +369,7 @@ export default function CatalogBrowser() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
 
           <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 24, flexWrap: "wrap" }}>
