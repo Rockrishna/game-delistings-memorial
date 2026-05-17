@@ -13,17 +13,18 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "delisted-theme";
 
+function readStoredTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
+  return stored === "dark" ? "dark" : "light";
+}
+
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
   useEffect(() => {
-    const stored = (typeof window !== "undefined"
-      ? window.localStorage.getItem(STORAGE_KEY)
-      : null) as Theme | null;
-    const initial = stored ?? "light";
-    setTheme(initial);
-    document.documentElement.dataset.theme = initial;
-  }, []);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   const toggle = useCallback(() => {
     setTheme((current) => {

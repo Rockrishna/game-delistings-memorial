@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Playfair_Display, Crimson_Pro, Special_Elite } from "next/font/google";
+import {
+  Playfair_Display,
+  Crimson_Pro,
+  Special_Elite,
+  Cutive_Mono,
+  Architects_Daughter,
+} from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import Header from "@/components/layout/Header";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 
@@ -29,10 +34,24 @@ const typewriter = Special_Elite({
   display: "swap",
 });
 
+const mono = Cutive_Mono({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+const hand = Architects_Daughter({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-hand",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "The Delisted — Game Delistings Tracker",
+  title: "Delisted Games Tracker — a database of withdrawn titles",
   description:
-    "Tracker for video games removed from sale, withdrawn, or scheduled for removal across major digital storefronts.",
+    "A scholarly card-catalog of video games pulled from major digital storefronts. Browse, filter, and read records sourced from IGDB.",
   icons: { icon: "/favicon.svg" },
 };
 
@@ -42,19 +61,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${crimson.variable} ${typewriter.variable}`}
+      className={`${playfair.variable} ${crimson.variable} ${typewriter.variable} ${mono.variable} ${hand.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen antialiased">
         <ThemeProvider>
-          <Header />
           {children}
-          <footer className="mt-16 border-t border-[color:var(--rule)] bg-[color:var(--paper-2)]">
-            <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-6 py-6 text-center font-typewriter text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-3)] md:flex-row md:items-center md:justify-between md:text-left">
-              <span>The Delisted · Game Delistings Tracker</span>
-              <span>Game metadata via IGDB</span>
-            </div>
-          </footer>
           <ScrollToTop />
         </ThemeProvider>
         <Analytics />
