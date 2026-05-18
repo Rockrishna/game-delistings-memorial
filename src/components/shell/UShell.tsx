@@ -2,21 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import CommandSearch from "@/components/shell/CommandSearch";
+import NavSearch from "@/components/shell/NavSearch";
 import ThemeToggle from "@/components/shell/ThemeToggle";
 
 const NAV = [
   { key: "overview", label: "Overview", href: "/" },
   { key: "catalog", label: "The Catalog", href: "/catalog" },
   { key: "insights", label: "Insights", href: "/insights" },
-  { key: "record", label: "Record", href: "/record" },
+  { key: "about", label: "About IGDB sourcing", href: "/about-igdb" },
 ];
 
 function surfaceOf(pathname: string): string {
   if (pathname.startsWith("/catalog")) return "catalog";
   if (pathname.startsWith("/insights")) return "insights";
-  if (pathname.startsWith("/record")) return "record";
   if (pathname.startsWith("/about")) return "about";
+  if (pathname.startsWith("/record")) return "catalog";
   return "overview";
 }
 
@@ -41,24 +41,20 @@ export default function UShell({
           <div className="masthead-sub">a database of withdrawn titles · metadata via IGDB · RAWG fallback</div>
         </div>
         <div className="masthead-actions">
-          <CommandSearch />
           <ThemeToggle />
         </div>
       </div>
 
-      <nav className="navrow">
-        {NAV.map((n) => (
-          <Link key={n.key} className={active === n.key ? "on" : ""} href={n.href}>
-            {n.label}
-          </Link>
-        ))}
-        <Link
-          className={`navrow-end ${active === "about" ? "on" : ""}`}
-          href="/about-igdb"
-        >
-          About IGDB sourcing
-        </Link>
-      </nav>
+      <div className="navwrap">
+        <nav className="navrow">
+          {NAV.map((n) => (
+            <Link key={n.key} className={active === n.key ? "on" : ""} href={n.href}>
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+        <NavSearch />
+      </div>
 
       <main className="canvas">{children}</main>
     </div>

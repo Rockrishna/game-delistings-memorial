@@ -34,6 +34,11 @@ type IGDBGame = {
   involved_companies?: IGDBCompany[];
   age_ratings?: IGDBAgeRating[];
   websites?: IGDBWebsite[];
+  game_modes?: Array<{ name?: string }>;
+  themes?: Array<{ name?: string }>;
+  player_perspectives?: Array<{ name?: string }>;
+  franchises?: Array<{ name?: string }>;
+  franchise?: { name?: string };
 };
 
 type IGDBGameStatus = {
@@ -141,6 +146,11 @@ const GAME_FIELDS = [
   "age_ratings.rating",
   "websites.category",
   "websites.url",
+  "game_modes.name",
+  "themes.name",
+  "player_perspectives.name",
+  "franchises.name",
+  "franchise.name",
 ];
 
 function imageUrlFromId(imageId: string, size = "t_cover_big") {
@@ -164,6 +174,10 @@ export type NormalizedIGDBGame = {
   developer?: string;
   ageRatings: Array<{ category: string; rating: string }>;
   websites: Array<{ category: string; url: string }>;
+  gameModes: string[];
+  themes: string[];
+  playerPerspectives: string[];
+  franchise?: string;
   platforms: Array<{ igdbId: number; name: string; abbreviation?: string; slug: string }>;
   genres: Array<{ igdbId: number; name: string; slug: string }>;
 };
@@ -214,6 +228,12 @@ function normalizeRow(row: IGDBGame): NormalizedIGDBGame {
         category: WEBSITE_CATEGORY[w.category as number] ?? "Link",
         url: w.url as string,
       })),
+    gameModes: (row.game_modes ?? []).map((m) => m.name).filter(Boolean) as string[],
+    themes: (row.themes ?? []).map((t) => t.name).filter(Boolean) as string[],
+    playerPerspectives: (row.player_perspectives ?? [])
+      .map((p) => p.name)
+      .filter(Boolean) as string[],
+    franchise: row.franchise?.name ?? row.franchises?.[0]?.name,
     platforms: (row.platforms ?? []).map((platform) => ({
       igdbId: platform.id,
       name: platform.name,

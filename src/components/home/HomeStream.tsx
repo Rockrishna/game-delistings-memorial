@@ -11,6 +11,7 @@ type Card = {
   platforms: string[];
   publisher: string | null;
   genres: string[];
+  coverUrl: string | null;
 };
 
 const PAGE_SIZE = 24;
@@ -75,10 +76,14 @@ export default function HomeStream() {
             <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>
               {g.callNumber}
             </div>
-            <div className="cover" style={{ aspectRatio: "3/4" }}>
-              <div className="label" style={{ fontSize: 8 }}>
-                {(g.platforms[0] ?? "—").slice(0, 6).toUpperCase()}
-              </div>
+            <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
+              {g.coverUrl ? (
+                <img src={g.coverUrl} alt={`${g.title} cover`} loading="lazy" />
+              ) : (
+                <div className="label" style={{ fontSize: 8 }}>
+                  {(g.platforms[0] ?? "—").slice(0, 6).toUpperCase()}
+                </div>
+              )}
             </div>
             <div className="font-serif" style={{ fontWeight: 600, fontSize: 13, marginTop: 8, lineHeight: 1.2 }}>
               {g.title}

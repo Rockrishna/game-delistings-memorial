@@ -24,6 +24,10 @@ export default async function RecordPage({
     ["IGDB rating", g.rating != null ? `${g.rating} / 100` : "unrated"],
     ["Status", g.statusLabel],
   ];
+  if (g.franchise) meta.push(["Franchise", g.franchise]);
+  if (g.gameModes.length) meta.push(["Game modes", g.gameModes.join(", ")]);
+  if (g.themes.length) meta.push(["Themes", g.themes.join(", ")]);
+  if (g.perspectives.length) meta.push(["Perspective", g.perspectives.join(", ")]);
   if (g.metacritic != null) meta.push(["Metacritic", `${g.metacritic} / 100`]);
 
   const igdbUrl = `https://www.igdb.com/games/${g.slug}`;

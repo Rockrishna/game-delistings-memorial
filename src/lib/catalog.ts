@@ -1,6 +1,16 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+function parseJsonArray<T>(value: string | null): T[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export type GameCard = {
   id: string;
   slug: string;
@@ -12,9 +22,14 @@ export type GameCard = {
   publisher: string | null;
   developer: string | null;
   genres: string[];
+  gameModes: string[];
+  themes: string[];
+  perspectives: string[];
+  franchise: string | null;
   rating: number | null;
   statusLabel: string;
   coverUrl: string | null;
+  hasCover: boolean;
 };
 
 const gameInclude = {
@@ -24,7 +39,6 @@ const gameInclude = {
 
 type GameWithRels = Prisma.GameGetPayload<{ include: typeof gameInclude }>;
 
-// Friendly storefront/family buckets the UI groups platforms into.
 const PLATFORM_FAMILIES: Array<{ name: string; match: (n: string) => boolean }> = [
   { name: "Steam", match: (n) => /windows|\bpc\b|mac|linux|dos|steam/.test(n) },
   { name: "PlayStation", match: (n) => /playstation|^ps[0-9 ]|vita|psp/.test(n) },
@@ -62,9 +76,14 @@ function toCard(g: GameWithRels): GameCard {
     publisher: g.publisher,
     developer: g.developer,
     genres: g.genres.map((x) => x.genre.name),
+    gameModes: parseJsonArray<string>(g.gameModes),
+    themes: parseJsonArray<string>(g.themes),
+    perspectives: parseJsonArray<string>(g.playerPerspectives),
+    franchise: g.franchise,
     rating: g.rating == null ? null : Math.round(g.rating),
     statusLabel: g.statusLabel,
     coverUrl: g.coverUrl,
+    hasCover: !!g.coverUrl,
   };
 }
 
@@ -117,39 +136,56 @@ export type CatalogQuery = {
   decade?: string[];
   genre?: string[];
   publisher?: string[];
+  developer?: string[];
+  mode?: string[];
+  theme?: string[];
+  perspective?: string[];
   rating?: string[];
-  sort?: "title" | "rating" | "year";
+  hasCover?: boolean;
+  sort?: "title" | "rating" | "year" | "year-asc";
   page?: number;
   pageSize?: number;
 };
 
-export type Facets = {
-  Platform: Array<{ name: string; count: number }>;
-  Decade: Array<{ name: string; count: number }>;
-  Genre: Array<{ name: string; count: number }>;
-  Publisher: Array<{ name: string; count: number }>;
-  Rating: Array<{ name: string; count: number }>;
-};
+export type FacetKey =
+  | "Platform"
+  | "Decade"
+  | "Genre"
+  | "Publisher"
+  | "Developer"
+  | "Mode"
+  | "Theme"
+  | "Perspective"
+  | "Rating";
+
+export type Facets = Record<FacetKey, Array<{ name: string; count: number }>>;
 
 function matchesQuery(card: GameCard, q: CatalogQuery): boolean {
   if (q.search) {
     const s = q.search.toLowerCase();
-    const hay = [card.title, card.publisher, card.developer, ...card.genres]
+    const hay = [
+      card.title,
+      card.publisher,
+      card.developer,
+      card.franchise,
+      ...card.genres,
+      ...card.themes,
+    ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
     if (!hay.includes(s)) return false;
   }
-  if (q.platform?.length && !q.platform.some((p) => card.platforms.includes(p)))
-    return false;
-  if (q.decade?.length && (!card.decade || !q.decade.includes(card.decade)))
-    return false;
-  if (q.genre?.length && !q.genre.some((g) => card.genres.includes(g)))
-    return false;
-  if (q.publisher?.length && (!card.publisher || !q.publisher.includes(card.publisher)))
-    return false;
-  if (q.rating?.length && !q.rating.includes(ratingBucket(card.rating)))
-    return false;
+  if (q.platform?.length && !q.platform.some((p) => card.platforms.includes(p))) return false;
+  if (q.decade?.length && (!card.decade || !q.decade.includes(card.decade))) return false;
+  if (q.genre?.length && !q.genre.some((g) => card.genres.includes(g))) return false;
+  if (q.publisher?.length && (!card.publisher || !q.publisher.includes(card.publisher))) return false;
+  if (q.developer?.length && (!card.developer || !q.developer.includes(card.developer))) return false;
+  if (q.mode?.length && !q.mode.some((m) => card.gameModes.includes(m))) return false;
+  if (q.theme?.length && !q.theme.some((t) => card.themes.includes(t))) return false;
+  if (q.perspective?.length && !q.perspective.some((p) => card.perspectives.includes(p))) return false;
+  if (q.rating?.length && !q.rating.includes(ratingBucket(card.rating))) return false;
+  if (q.hasCover && !card.hasCover) return false;
   return true;
 }
 
@@ -163,6 +199,7 @@ export async function getCatalog(q: CatalogQuery) {
   filtered.sort((a, b) => {
     if (sort === "rating") return (b.rating ?? -1) - (a.rating ?? -1);
     if (sort === "year") return (b.year ?? 0) - (a.year ?? 0);
+    if (sort === "year-asc") return (a.year ?? 9999) - (b.year ?? 9999);
     return a.title.localeCompare(b.title);
   });
 
@@ -181,19 +218,32 @@ export async function getCatalog(q: CatalogQuery) {
   };
 }
 
+function tally(map: Map<string, number>, key: string | null | undefined) {
+  if (!key) return;
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+
 function buildFacets(cards: GameCard[]): Facets {
   const platform = new Map<string, number>();
   const decade = new Map<string, number>();
   const genre = new Map<string, number>();
   const publisher = new Map<string, number>();
+  const developer = new Map<string, number>();
+  const mode = new Map<string, number>();
+  const theme = new Map<string, number>();
+  const perspective = new Map<string, number>();
   const rating = new Map<string, number>();
 
   for (const c of cards) {
-    for (const p of c.platforms) if (p !== "Other") platform.set(p, (platform.get(p) ?? 0) + 1);
-    if (c.decade) decade.set(c.decade, (decade.get(c.decade) ?? 0) + 1);
-    for (const g of c.genres) genre.set(g, (genre.get(g) ?? 0) + 1);
-    if (c.publisher) publisher.set(c.publisher, (publisher.get(c.publisher) ?? 0) + 1);
-    rating.set(ratingBucket(c.rating), (rating.get(ratingBucket(c.rating)) ?? 0) + 1);
+    for (const p of c.platforms) if (p !== "Other") tally(platform, p);
+    tally(decade, c.decade);
+    for (const g of c.genres) tally(genre, g);
+    tally(publisher, c.publisher);
+    tally(developer, c.developer);
+    for (const m of c.gameModes) tally(mode, m);
+    for (const t of c.themes) tally(theme, t);
+    for (const pp of c.perspectives) tally(perspective, pp);
+    tally(rating, ratingBucket(c.rating));
   }
 
   const sortByCount = (m: Map<string, number>, limit?: number) => {
@@ -209,8 +259,12 @@ function buildFacets(cards: GameCard[]): Facets {
     Decade: [...decade.entries()]
       .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([name, count]) => ({ name, count })),
-    Genre: sortByCount(genre, 24),
-    Publisher: sortByCount(publisher, 24),
+    Genre: sortByCount(genre, 30),
+    Publisher: sortByCount(publisher, 40),
+    Developer: sortByCount(developer, 40),
+    Mode: sortByCount(mode),
+    Theme: sortByCount(theme, 30),
+    Perspective: sortByCount(perspective),
     Rating: ratingOrder
       .filter((r) => rating.has(r))
       .map((name) => ({ name, count: rating.get(name) ?? 0 })),
@@ -228,7 +282,14 @@ export async function getInsights() {
   const decadeCounts = new Map<string, number>();
   const genreCounts = new Map<string, number>();
   const publisherCounts = new Map<string, number>();
+  const developerCounts = new Map<string, number>();
+  const modeCounts = new Map<string, number>();
+  const themeCounts = new Map<string, number>();
+  const perspectiveCounts = new Map<string, number>();
+  const franchiseCounts = new Map<string, number>();
   const ratings: number[] = [];
+  const ratingSumByDecade = new Map<string, { sum: number; n: number }>();
+  let withCover = 0;
 
   const heatDecades = ["1990s", "2000s", "2010s", "2020s"];
   const heatFamilies = ["Steam", "PlayStation", "Xbox", "Nintendo", "iOS", "Android"];
@@ -236,83 +297,55 @@ export async function getInsights() {
   for (const f of heatFamilies) heat[f] = Object.fromEntries(heatDecades.map((d) => [d, 0]));
 
   for (const c of cards) {
-    if (c.decade) decadeCounts.set(c.decade, (decadeCounts.get(c.decade) ?? 0) + 1);
-    for (const g of c.genres) genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
-    if (c.publisher) publisherCounts.set(c.publisher, (publisherCounts.get(c.publisher) ?? 0) + 1);
-    if (c.rating != null) ratings.push(c.rating);
+    tally(decadeCounts, c.decade);
+    for (const g of c.genres) tally(genreCounts, g);
+    tally(publisherCounts, c.publisher);
+    tally(developerCounts, c.developer);
+    for (const m of c.gameModes) tally(modeCounts, m);
+    for (const t of c.themes) tally(themeCounts, t);
+    for (const pp of c.perspectives) tally(perspectiveCounts, pp);
+    tally(franchiseCounts, c.franchise);
+    if (c.hasCover) withCover += 1;
+    if (c.rating != null) {
+      ratings.push(c.rating);
+      if (c.decade) {
+        const e = ratingSumByDecade.get(c.decade) ?? { sum: 0, n: 0 };
+        e.sum += c.rating;
+        e.n += 1;
+        ratingSumByDecade.set(c.decade, e);
+      }
+    }
     for (const fam of c.platforms) {
       if (fam === "Other") continue;
-      familyCounts.set(fam, (familyCounts.get(fam) ?? 0) + 1);
+      tally(familyCounts, fam);
       if (heat[fam] && c.decade && heat[fam][c.decade] != null) heat[fam][c.decade] += 1;
     }
   }
 
   ratings.sort((a, b) => a - b);
-  const median = ratings.length
-    ? ratings[Math.floor(ratings.length / 2)]
-    : null;
+  const median = ratings.length ? ratings[Math.floor(ratings.length / 2)] : null;
 
-  const topPlatform = [...familyCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
-  const topDecade = [...decadeCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
-
-  const topGenre = [...genreCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
-  const topPublisher = [...publisherCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
-  const earliestDecade = [...decadeCounts.entries()].sort((a, b) =>
-    a[0].localeCompare(b[0])
-  )[0] ?? null;
+  const top = (m: Map<string, number>) =>
+    [...m.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  const topPlatform = top(familyCounts);
+  const topDecade = top(decadeCounts);
+  const topGenre = top(genreCounts);
+  const topPublisher = top(publisherCounts);
+  const earliestDecade =
+    [...decadeCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]))[0] ?? null;
   const acclaimed = ratings.filter((r) => r >= 80).length;
   const lowRated = ratings.filter((r) => r < 60).length;
 
   const enc = encodeURIComponent;
   const attributePatterns = [
-    topGenre && {
-      count: topGenre[1],
-      title: `${topGenre[0]} dominated`,
-      blurb: `The genre with the most withdrawn titles in the catalogue.`,
-      href: `/catalog?genre=${enc(topGenre[0])}`,
-    },
-    topPlatform && {
-      count: topPlatform[1],
-      title: `${topPlatform[0]} casualties`,
-      blurb: `More games left this storefront than any other.`,
-      href: `/catalog?platform=${enc(topPlatform[0])}`,
-    },
-    topDecade && {
-      count: topDecade[1],
-      title: `The ${topDecade[0]} were hit hardest`,
-      blurb: `The release decade that lost the most titles.`,
-      href: `/catalog?decade=${enc(topDecade[0])}`,
-    },
-    topPublisher && {
-      count: topPublisher[1],
-      title: `${topPublisher[0]} lost the most`,
-      blurb: `The publisher with the largest delisted back-catalogue.`,
-      href: `/catalog?publisher=${enc(topPublisher[0])}`,
-    },
-    {
-      count: acclaimed,
-      title: `Acclaimed yet pulled`,
-      blurb: `Delisted games that still scored 80+ on IGDB.`,
-      href: `/catalog?rating=${enc("≥ 90")}&rating=${enc("80–89")}`,
-    },
-    earliestDecade && {
-      count: earliestDecade[1],
-      title: `Legacy losses · ${earliestDecade[0]}`,
-      blurb: `The oldest cohort of withdrawn titles still on record.`,
-      href: `/catalog?decade=${enc(earliestDecade[0])}`,
-    },
-    {
-      count: lowRated,
-      title: `Quietly forgotten`,
-      blurb: `Lower-rated titles (under 60) that slipped away.`,
-      href: `/catalog?rating=${enc("< 60")}`,
-    },
-  ].filter(Boolean) as Array<{
-    count: number;
-    title: string;
-    blurb: string;
-    href: string;
-  }>;
+    topGenre && { count: topGenre[1], title: `${topGenre[0]} dominated`, blurb: `The genre with the most withdrawn titles.`, href: `/catalog?genre=${enc(topGenre[0])}` },
+    topPlatform && { count: topPlatform[1], title: `${topPlatform[0]} casualties`, blurb: `More games left this storefront than any other.`, href: `/catalog?platform=${enc(topPlatform[0])}` },
+    topDecade && { count: topDecade[1], title: `The ${topDecade[0]} were hit hardest`, blurb: `The release decade that lost the most titles.`, href: `/catalog?decade=${enc(topDecade[0])}` },
+    topPublisher && { count: topPublisher[1], title: `${topPublisher[0]} lost the most`, blurb: `The publisher with the largest delisted back-catalogue.`, href: `/catalog?publisher=${enc(topPublisher[0])}` },
+    { count: acclaimed, title: `Acclaimed yet pulled`, blurb: `Delisted games that still scored 80+ on IGDB.`, href: `/catalog?rating=${enc("≥ 90")}&rating=${enc("80–89")}` },
+    earliestDecade && { count: earliestDecade[1], title: `Legacy losses · ${earliestDecade[0]}`, blurb: `The oldest cohort of withdrawn titles still on record.`, href: `/catalog?decade=${enc(earliestDecade[0])}` },
+    { count: lowRated, title: `Quietly forgotten`, blurb: `Lower-rated titles (under 60) that slipped away.`, href: `/catalog?rating=${enc("< 60")}` },
+  ].filter(Boolean) as Array<{ count: number; title: string; blurb: string; href: string }>;
 
   const histBuckets = [
     { bucket: "0–20", lo: 0, hi: 20 },
@@ -327,6 +360,24 @@ export async function getInsights() {
     count: ratings.filter((r) => r >= b.lo && r < b.hi).length,
   }));
 
+  const ranked = (m: Map<string, number>, n: number) =>
+    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([name, count]) => ({ name, count }));
+
+  const allDecades = [...decadeCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
+  const topAcclaimed = cards
+    .filter((c) => c.rating != null)
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .slice(0, 12)
+    .map((c) => ({
+      slug: c.slug,
+      title: c.title,
+      callNumber: c.callNumber,
+      rating: c.rating,
+      year: c.year,
+      publisher: c.publisher,
+    }));
+
   return {
     total,
     topPlatform: topPlatform
@@ -336,35 +387,35 @@ export async function getInsights() {
       ? { name: topDecade[0], count: topDecade[1], pct: Math.round((topDecade[1] / total) * 100) }
       : null,
     medianRating: median,
+    coverPct: total ? Math.round((withCover / total) * 100) : 0,
     heatmap: {
       platforms: heatFamilies,
       decades: heatDecades,
       values: heatFamilies.map((f) => heatDecades.map((d) => heat[f][d])),
     },
-    byGenre: [...genreCounts.entries()]
+    byPlatform: [...familyCounts.entries()]
+      .filter(([n]) => n !== "Other")
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 9)
       .map(([name, count]) => ({ name, count })),
-    byPublisher: [...publisherCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([name, count]) => ({ name, count })),
+    byDecade: allDecades.map(([name, count]) => ({ name, count })),
+    byGenre: ranked(genreCounts, 9),
+    byPublisher: ranked(publisherCounts, 8),
+    byDeveloper: ranked(developerCounts, 10),
+    byMode: ranked(modeCounts, 8),
+    byTheme: ranked(themeCounts, 12),
+    byPerspective: ranked(perspectiveCounts, 8),
+    byFranchise: ranked(franchiseCounts, 10),
+    ratingByDecade: allDecades.map(([name]) => {
+      const e = ratingSumByDecade.get(name);
+      return { name, avg: e && e.n ? Math.round(e.sum / e.n) : 0 };
+    }),
     ratingHist: histBuckets,
+    topAcclaimed,
     attributePatterns,
   };
 }
 
 /* ---------------- Record ---------------- */
-
-function parseJsonArray<T>(value: string | null): T[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
-}
 
 export async function getRecord(slug: string) {
   const g = await prisma.game.findFirst({
