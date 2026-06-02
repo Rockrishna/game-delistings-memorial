@@ -97,6 +97,10 @@ export default async function InsightsPage() {
   const axisLo = Math.max(0, Math.floor(avgMin) - 6);
   const axisHi = Math.min(100, Math.ceil(avgMax) + 2);
   const axisSpan = Math.max(1, axisHi - axisLo);
+  // Pixel drawing height for histogram bars. We size bars in px (not %)
+  // because the flex column isn't a definite-height parent, so percentage
+  // heights collapse to ~0 (bars render as flat lines).
+  const BAR_PX = 190;
 
   const headline: Array<[string, string, string, string | null]> = [
     ["TOTAL", i.total.toLocaleString(), "records", null],
@@ -210,7 +214,7 @@ export default async function InsightsPage() {
                 <div className="hist-val">{b.count}</div>
                 <div
                   className={`hist-bar ${idx >= 4 ? "accent" : ""}`}
-                  style={{ height: b.count ? `${Math.max(4, (b.count / histMax) * 100)}%` : "0%" }}
+                  style={{ height: b.count ? `${Math.max(4, (b.count / histMax) * BAR_PX)}px` : "0px" }}
                 />
                 <div className="hist-label">{b.bucket}</div>
               </div>
@@ -325,7 +329,7 @@ export default async function InsightsPage() {
                 <div className="hist-val">{d.avg}</div>
                 <div
                   className={`hist-bar ${d.avg >= 75 ? "accent" : ""}`}
-                  style={{ height: `${Math.max(6, ((d.avg - axisLo) / axisSpan) * 100)}%` }}
+                  style={{ height: `${Math.max(6, ((d.avg - axisLo) / axisSpan) * BAR_PX)}px` }}
                 />
                 <div className="hist-label">{d.name}</div>
               </div>
