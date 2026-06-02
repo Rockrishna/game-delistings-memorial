@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useNsfw } from "@/components/layout/NsfwProvider";
 
 type Hit = {
   slug: string;
@@ -14,6 +15,7 @@ type Hit = {
 type IgdbResult = { outcome: string; message: string };
 
 export default function NavSearch() {
+  const { showNsfw } = useNsfw();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [open, setOpen] = useState(false);
@@ -50,13 +52,15 @@ export default function NavSearch() {
     setLoading(true);
     setIgdb(null);
     try {
-      const res = await fetch(`/api/catalog?q=${encodeURIComponent(term)}&pageSize=8`);
+      const res = await fetch(
+        `/api/catalog?q=${encodeURIComponent(term)}&pageSize=8${showNsfw ? "&nsfw=1" : ""}`
+      );
       const data = await res.json();
       setHits(data.rows ?? []);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showNsfw]);
 
   useEffect(() => {
     const t = setTimeout(() => run(q), 220);

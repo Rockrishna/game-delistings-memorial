@@ -56,6 +56,12 @@ model Game {
   igdbStatus  Int?
   statusLabel String @default("delisted")
 
+  // Mature/sexual content flag. Derived from IGDB themes ("Erotic"), age
+  // ratings (AO), and title/summary keywords. NSFW records stay in the data
+  // (insights/aggregates) but are hidden from browsing views unless the
+  // visitor opts in via the NSFW toggle.
+  nsfw Boolean @default(false)
+
   // Which source filled publisher/developer when IGDB was sparse.
   enrichedFrom String? // "igdb" | "igdb+rawg"
 
@@ -72,6 +78,7 @@ model Game {
   @@index([decade])
   @@index([rating])
   @@index([publisher])
+  @@index([nsfw])
 }
 
 model Platform {

@@ -30,6 +30,7 @@ export type GameCard = {
   statusLabel: string;
   coverUrl: string | null;
   hasCover: boolean;
+  nsfw: boolean;
 };
 
 const gameInclude = {
@@ -84,6 +85,7 @@ function toCard(g: GameWithRels): GameCard {
     statusLabel: g.statusLabel,
     coverUrl: g.coverUrl,
     hasCover: !!g.coverUrl,
+    nsfw: g.nsfw,
   };
 }
 
@@ -145,6 +147,10 @@ export type CatalogQuery = {
   // How the selected facet groups combine: "all" = AND (narrow), "any" = OR
   // (broaden). Free-text search and the cover filter are always AND.
   match?: "all" | "any";
+  // When false/omitted, NSFW (sexual/porn) titles are removed from the result
+  // rows and facet counts. They remain in the data behind insights/overview —
+  // this only governs the browsing view.
+  includeNsfw?: boolean;
   sort?: "title" | "rating" | "year" | "year-asc";
   page?: number;
   pageSize?: number;
@@ -200,7 +206,12 @@ function matchesQuery(card: GameCard, q: CatalogQuery): boolean {
 
 export async function getCatalog(q: CatalogQuery) {
   const rows = await prisma.game.findMany({ include: gameInclude });
-  const cards = rows.map(toCard);
+  // NSFW titles drop out of the browsable view (rows + facets) unless the
+  // visitor opted in. Insights/overview never call this, so the data stays
+  // whole for aggregates.
+  const cards = q.includeNsfw
+    ? rows.map(toCard)
+    : rows.map(toCard).filter((c) => !c.nsfw);
 
   const filtered = cards.filter((c) => matchesQuery(c, q));
 
@@ -426,7 +437,7 @@ export async function getInsights() {
 
 /* ---------------- Record ---------------- */
 
-export async function getRecord(slug: string) {
+export async function getRecord(slug: string, opts?: { includeNsfw?: boolean }) {
   const g = await prisma.game.findFirst({
     where: { OR: [{ slug }, { id: slug }] },
     include: gameInclude,
@@ -442,6 +453,8 @@ export async function getRecord(slug: string) {
   const adjacent = await prisma.game.findMany({
     where: {
       id: { not: g.id },
+      // Keep NSFW suggestions out of the related-records strip unless opted in.
+      ...(opts?.includeNsfw ? {} : { nsfw: false }),
       OR: [
         g.publisher ? { publisher: g.publisher } : {},
         g.decade ? { decade: g.decade } : {},

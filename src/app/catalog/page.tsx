@@ -40,6 +40,7 @@ export default async function CatalogPage({
   const sort = (validSort.includes(sortRaw) ? sortRaw : "title") as CatalogQuery["sort"];
   const page = Number(typeof sp.page === "string" ? sp.page : "1") || 1;
   const hasCover = sp.hasCover === "1";
+  const includeNsfw = sp.nsfw === "1";
   const match = sp.match === "any" ? "any" : "all";
   const q = typeof sp.q === "string" ? sp.q : undefined;
 
@@ -55,6 +56,7 @@ export default async function CatalogPage({
     perspective: values(sp, "perspective"),
     rating: values(sp, "rating"),
     hasCover,
+    includeNsfw,
     match,
     sort,
     page,
@@ -66,6 +68,7 @@ export default async function CatalogPage({
   for (const param of FACET_PARAMS) for (const v of values(sp, param)) canonical.append(param, v);
   if (q) canonical.append("q", q);
   if (hasCover) canonical.set("hasCover", "1");
+  if (includeNsfw) canonical.set("nsfw", "1");
   canonical.set("page", String(page));
   canonical.set("sort", sort ?? "title");
   if (match === "any") canonical.set("match", "any");

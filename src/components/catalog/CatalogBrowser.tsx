@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useNsfw } from "@/components/layout/NsfwProvider";
 
 type Card = {
   slug: string;
@@ -169,6 +170,7 @@ export default function CatalogBrowser({
 }) {
   const router = useRouter();
   const sp = useSearchParams();
+  const { showNsfw } = useNsfw();
   // View toggle uses its own `view` param so it never collides with the
   // "Mode" (game-mode) facet, which lives on `mode`.
   const mode = sp.get("view") === "advanced" ? "advanced" : "simple";
@@ -202,12 +204,13 @@ export default function CatalogBrowser({
     const p = new URLSearchParams();
     for (const [k, vals] of Object.entries(filters)) for (const v of vals) p.append(k, v);
     if (hasCover) p.set("hasCover", "1");
+    if (showNsfw) p.set("nsfw", "1");
     p.set("page", String(page));
     p.set("sort", sort);
     if (matchMode === "any") p.set("match", "any");
     p.set("pageSize", "24");
     return p.toString();
-  }, [filters, page, sort, hasCover, matchMode]);
+  }, [filters, page, sort, hasCover, matchMode, showNsfw]);
 
   useEffect(() => {
     // First render already has server data for this query string.

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import NavSearch from "@/components/shell/NavSearch";
 import ThemeToggle from "@/components/shell/ThemeToggle";
+import NsfwToggle from "@/components/shell/NsfwToggle";
 
 const NAV = [
   { key: "overview", label: "Overview", href: "/" },
@@ -40,9 +41,6 @@ export default function UShell({
           <h1>Delisted Games Tracker</h1>
           <div className="masthead-sub">a database of withdrawn titles</div>
         </div>
-        <div className="masthead-actions">
-          <ThemeToggle />
-        </div>
       </div>
 
       <div className="navwrap">
@@ -52,6 +50,10 @@ export default function UShell({
               {n.label}
             </Link>
           ))}
+          <div className="navrow-actions">
+            <NsfwToggle />
+            <ThemeToggle />
+          </div>
         </nav>
         <NavSearch />
       </div>

@@ -10,6 +10,7 @@ import {
 import { Analytics } from "@vercel/analytics/next";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import ThemeProvider from "@/components/layout/ThemeProvider";
+import NsfwProvider from "@/components/layout/NsfwProvider";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -66,8 +67,10 @@ export default function RootLayout({
     >
       <body className="min-h-screen antialiased">
         <ThemeProvider>
-          {children}
-          <ScrollToTop />
+          <NsfwProvider>
+            {children}
+            <ScrollToTop />
+          </NsfwProvider>
         </ThemeProvider>
         <Analytics />
       </body>

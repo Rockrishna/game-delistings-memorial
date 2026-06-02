@@ -5,6 +5,7 @@ import {
   type NormalizedIGDBGame,
 } from "@/lib/igdb";
 import { fetchRawgFallback } from "@/lib/rawg";
+import { isNsfwGame } from "@/lib/nsfw";
 
 const PAGE_SIZE = 250;
 const MAX_PAGES = 40; // 10,000 games — safety cap
@@ -140,6 +141,12 @@ async function upsertGame(
     themes: JSON.stringify(igdb.themes),
     playerPerspectives: JSON.stringify(igdb.playerPerspectives),
     franchise: igdb.franchise,
+    nsfw: isNsfwGame({
+      themes: igdb.themes,
+      ageRatings: igdb.ageRatings,
+      name: igdb.name,
+      summary: igdb.summary,
+    }),
     igdbStatus: igdb.status,
     statusLabel: STATUS_LABEL[igdb.status ?? -1] ?? "delisted",
     enrichedFrom,

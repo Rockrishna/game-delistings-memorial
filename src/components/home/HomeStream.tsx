@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useNsfw } from "@/components/layout/NsfwProvider";
 
 type Card = {
   slug: string;
@@ -17,6 +18,13 @@ type Card = {
 const PAGE_SIZE = 24;
 
 export default function HomeStream() {
+  const { showNsfw } = useNsfw();
+  // Remount the stream when the NSFW preference flips so all infinite-scroll
+  // state resets cleanly (no manual setState juggling in an effect).
+  return <HomeStreamInner key={showNsfw ? "nsfw" : "sfw"} showNsfw={showNsfw} />;
+}
+
+function HomeStreamInner({ showNsfw }: { showNsfw: boolean }) {
   const [rows, setRows] = useState<Card[]>([]);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -34,7 +42,7 @@ export default function HomeStream() {
     try {
       const next = pageRef.current;
       const res = await fetch(
-        `/api/catalog?sort=year&pageSize=${PAGE_SIZE}&page=${next}`
+        `/api/catalog?sort=year&pageSize=${PAGE_SIZE}&page=${next}${showNsfw ? "&nsfw=1" : ""}`
       );
       const data = await res.json();
       setRows((prev) => {
@@ -49,7 +57,7 @@ export default function HomeStream() {
       busyRef.current = false;
       setLoading(false);
     }
-  }, []);
+  }, [showNsfw]);
 
   useEffect(() => {
     void loadMore();
