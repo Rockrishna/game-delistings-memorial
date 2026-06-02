@@ -176,7 +176,8 @@ export default function CatalogBrowser({
   const [data, setData] = useState<ApiResult | null>(initial);
   const [loading, setLoading] = useState(initial == null);
   const [queryText, setQueryText] = useState("");
-  const [railOpen, setRailOpen] = useState(false);
+  // Advanced view opens the filter rail by default; simple view starts closed.
+  const [railOpen, setRailOpen] = useState(mode === "advanced");
   // Server already rendered the data for this exact query string; skip the
   // first client fetch so the page paints straight from the DB cache.
   const hydratedFor = useRef<string | null>(initial ? initialQuery : null);
@@ -195,6 +196,7 @@ export default function CatalogBrowser({
   const page = Number(sp.get("page") || "1") || 1;
   const sort = sp.get("sort") || "title";
   const hasCover = sp.get("hasCover") === "1";
+  const matchMode = sp.get("match") === "any" ? "any" : "all";
 
   const queryString = useMemo(() => {
     const p = new URLSearchParams();
@@ -202,9 +204,10 @@ export default function CatalogBrowser({
     if (hasCover) p.set("hasCover", "1");
     p.set("page", String(page));
     p.set("sort", sort);
+    if (matchMode === "any") p.set("match", "any");
     p.set("pageSize", "24");
     return p.toString();
-  }, [filters, page, sort, hasCover]);
+  }, [filters, page, sort, hasCover, matchMode]);
 
   useEffect(() => {
     // First render already has server data for this query string.
@@ -240,6 +243,7 @@ export default function CatalogBrowser({
   );
 
   function setMode(next: "simple" | "advanced") {
+    if (next === "advanced") setRailOpen(true);
     pushParams((p) => {
       if (next === "advanced") p.set("view", "advanced");
       else p.delete("view");
@@ -282,6 +286,14 @@ export default function CatalogBrowser({
     pushParams((p) => p.set("page", String(n)));
   }
 
+  function setMatch(next: "all" | "any") {
+    pushParams((p) => {
+      if (next === "any") p.set("match", "any");
+      else p.delete("match");
+      p.set("page", "1");
+    });
+  }
+
   const facets = data?.facets ?? {};
   const activeChips = Object.entries(filters).flatMap(([k, vals]) =>
     vals.map((v) => ({ k, v }))
@@ -298,6 +310,38 @@ export default function CatalogBrowser({
           <button className="chip" onClick={clearAll}>clear all</button>
         ) : null}
       </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div className="strap" style={{ marginBottom: 6 }}>COMBINE FILTERS</div>
+        <div style={{ display: "flex", border: "1px solid var(--ink)" }}>
+          {([
+            ["all", "MATCH ALL", "AND"],
+            ["any", "MATCH ANY", "OR"],
+          ] as const).map(([val, label, tag], idx) => (
+            <button
+              key={val}
+              onClick={() => setMatch(val)}
+              title={val === "all" ? "Show records matching every selected filter" : "Show records matching any selected filter"}
+              style={{
+                flex: 1,
+                border: 0,
+                padding: "7px 8px",
+                cursor: "pointer",
+                fontFamily: "var(--typewriter)",
+                fontSize: 11,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                background: matchMode === val ? "var(--ink)" : "transparent",
+                color: matchMode === val ? "var(--paper)" : "var(--ink-2)",
+                borderRight: idx === 0 ? "1px solid var(--ink)" : "none",
+              }}
+            >
+              {label} <span style={{ opacity: 0.6 }}>· {tag}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {activeChips.length ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
           {activeChips.map(({ k, v }) => (
@@ -368,7 +412,7 @@ export default function CatalogBrowser({
           <p className="font-serif muted" style={{ fontStyle: "italic", margin: "2px 0 0", fontSize: 13, maxWidth: 540 }}>
             {mode === "simple"
               ? "Filter from the rail (sections collapse — open what you need) or switch to advanced for query syntax."
-              : "Compose any cross-section using IGDB metadata: platform:Steam decade:2010s rating:\"≥ 90\"."}
+              : "Compose any cross-section: platform:Steam decade:2010s rating:\"≥ 90\"."}
           </p>
         </div>
         <div style={{ display: "flex", border: "1px solid var(--ink)" }}>

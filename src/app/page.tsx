@@ -17,7 +17,7 @@ export default async function OverviewPage() {
   const begin = [
     { t: "Browse the catalog", d: `${o.total.toLocaleString()} records · filter by anything`, a: "open the catalog →", href: "/catalog" },
     { t: "See the shape of the loss", d: "Heatmaps, genres, publishers, ratings", a: "insights →", href: "/insights" },
-    { t: "Search for a title", d: "By name, publisher, IGDB metadata", a: "⌕ search · ⌘K", href: "/catalog" },
+    { t: "Search for a title", d: "By name, publisher, or developer", a: "⌕ search →", href: "/catalog" },
   ];
 
   return (

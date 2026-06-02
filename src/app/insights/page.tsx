@@ -89,7 +89,14 @@ export default async function InsightsPage() {
   const heatMax = Math.max(1, ...i.heatmap.values.flat());
   const histMax = Math.max(1, ...i.ratingHist.map((b) => b.count));
   const ratedDecades = i.ratingByDecade.filter((d) => d.avg > 0);
-  const avgMax = Math.max(1, ...ratedDecades.map((d) => d.avg));
+  const avgMax = ratedDecades.length ? Math.max(...ratedDecades.map((d) => d.avg)) : 0;
+  const avgMin = ratedDecades.length ? Math.min(...ratedDecades.map((d) => d.avg)) : 0;
+  // Decade averages cluster (e.g. 60–75), so a 0–100 axis flattens them into a
+  // straight line. Zoom the axis to just below the lowest value so differences
+  // between decades are actually visible.
+  const axisLo = Math.max(0, Math.floor(avgMin) - 6);
+  const axisHi = Math.min(100, Math.ceil(avgMax) + 2);
+  const axisSpan = Math.max(1, axisHi - axisLo);
 
   const headline: Array<[string, string, string, string | null]> = [
     ["TOTAL", i.total.toLocaleString(), "records", null],
@@ -106,7 +113,7 @@ export default async function InsightsPage() {
       i.topDecade ? `/catalog?decade=${enc(i.topDecade.name)}` : null,
     ],
     ["MEDIAN RATING", i.medianRating != null ? String(i.medianRating) : "—", "of rated titles", null],
-    ["WITH COVER ART", `${i.coverPct}%`, "have IGDB art", null],
+    ["WITH COVER ART", `${i.coverPct}%`, "have cover art", null],
   ];
 
   return (
@@ -117,8 +124,8 @@ export default async function InsightsPage() {
           The Shape of the Loss
         </h2>
         <p className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", maxWidth: 680, margin: "4px auto 0", fontSize: 15 }}>
-          Thirteen displays drawn from IGDB metadata. Every figure links into
-          the catalog, pre-filtered to that slice.
+          Thirteen displays of what the catalogue has lost. Every figure links
+          into the catalog, pre-filtered to that slice.
         </p>
       </div>
 
@@ -194,18 +201,18 @@ export default async function InsightsPage() {
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap">DISPLAY III · RATING DISTRIBUTION</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 6px" }}>Were they good?</h3>
-          <p className="font-serif muted" style={{ fontStyle: "italic", margin: "0 0 16px", fontSize: 13 }}>
-            IGDB user score, bucketed, across the {i.ratingHist.reduce((s, b) => s + b.count, 0).toLocaleString()} rated titles.
+          <p className="font-serif muted" style={{ fontStyle: "italic", margin: "0 0 16px", fontSize: 14 }}>
+            User score, bucketed, across the {i.ratingHist.reduce((s, b) => s + b.count, 0).toLocaleString()} rated titles.
           </p>
           <div className="hist">
             {i.ratingHist.map((b, idx) => (
               <div key={b.bucket} className="hist-col">
-                <div className="font-mono muted" style={{ fontSize: 10 }}>{b.count}</div>
+                <div className="hist-val">{b.count}</div>
                 <div
                   className={`hist-bar ${idx >= 4 ? "accent" : ""}`}
                   style={{ height: b.count ? `${Math.max(4, (b.count / histMax) * 100)}%` : "0%" }}
                 />
-                <div className="font-mono muted" style={{ fontSize: 10, marginTop: 4 }}>{b.bucket}</div>
+                <div className="hist-label">{b.bucket}</div>
               </div>
             ))}
           </div>
@@ -256,7 +263,6 @@ export default async function InsightsPage() {
       <Section
         strap="DISPLAY VIII · DEVELOPERS"
         title="Studios with the deepest losses"
-        note="Developer credits are sourced from IGDB involved_companies, with RAWG filling gaps."
       >
         <BarList rows={i.byDeveloper} hrefFor={(n) => `/catalog?developer=${enc(n)}`} />
       </Section>
@@ -268,7 +274,7 @@ export default async function InsightsPage() {
           {i.byMode.length ? (
             <BarList rows={i.byMode} hrefFor={(n) => `/catalog?mode=${enc(n)}`} />
           ) : (
-            <Empty label="Game-mode metadata is still being enriched from IGDB." />
+            <Empty label="Game-mode data is still being enriched." />
           )}
         </div>
         <div style={{ padding: "24px 32px" }}>
@@ -277,7 +283,7 @@ export default async function InsightsPage() {
           {i.byPerspective.length ? (
             <BarList rows={i.byPerspective} hrefFor={(n) => `/catalog?perspective=${enc(n)}`} />
           ) : (
-            <Empty label="Player-perspective metadata is still being enriched from IGDB." />
+            <Empty label="Player-perspective data is still being enriched." />
           )}
         </div>
       </div>
@@ -303,25 +309,25 @@ export default async function InsightsPage() {
           </div>
         </div>
         ) : (
-          <Empty label="Theme metadata is still being enriched from IGDB." />
+          <Empty label="Theme data is still being enriched." />
         )}
       </Section>
 
       <Section
         strap="DISPLAY XII · QUALITY OVER TIME"
-        title="Average IGDB rating by decade"
-        note="Average IGDB user rating among rated titles, decade by decade. Bars are scaled to the highest-rated decade so differences are legible."
+        title="Average rating by decade"
+        note={`Average user rating among rated titles, decade by decade. The axis is zoomed to ${axisLo}–${axisHi} so the differences between decades are visible.`}
       >
         {ratedDecades.length ? (
-          <div className="hist" style={{ height: 150 }}>
+          <div className="hist">
             {ratedDecades.map((d) => (
               <div key={d.name} className="hist-col">
-                <div className="font-mono muted" style={{ fontSize: 10 }}>{d.avg}</div>
+                <div className="hist-val">{d.avg}</div>
                 <div
                   className={`hist-bar ${d.avg >= 75 ? "accent" : ""}`}
-                  style={{ height: `${Math.max(6, (d.avg / avgMax) * 100)}%` }}
+                  style={{ height: `${Math.max(6, ((d.avg - axisLo) / axisSpan) * 100)}%` }}
                 />
-                <div className="font-mono muted" style={{ fontSize: 10, marginTop: 4 }}>{d.name}</div>
+                <div className="hist-label">{d.name}</div>
               </div>
             ))}
           </div>

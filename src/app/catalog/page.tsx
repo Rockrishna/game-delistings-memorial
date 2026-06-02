@@ -40,6 +40,7 @@ export default async function CatalogPage({
   const sort = (validSort.includes(sortRaw) ? sortRaw : "title") as CatalogQuery["sort"];
   const page = Number(typeof sp.page === "string" ? sp.page : "1") || 1;
   const hasCover = sp.hasCover === "1";
+  const match = sp.match === "any" ? "any" : "all";
   const q = typeof sp.q === "string" ? sp.q : undefined;
 
   const query: CatalogQuery = {
@@ -54,6 +55,7 @@ export default async function CatalogPage({
     perspective: values(sp, "perspective"),
     rating: values(sp, "rating"),
     hasCover,
+    match,
     sort,
     page,
     pageSize: 24,
@@ -66,6 +68,7 @@ export default async function CatalogPage({
   if (hasCover) canonical.set("hasCover", "1");
   canonical.set("page", String(page));
   canonical.set("sort", sort ?? "title");
+  if (match === "any") canonical.set("match", "any");
   canonical.set("pageSize", "24");
 
   const [{ total }, initial] = await Promise.all([getOverview(), getCatalog(query)]);

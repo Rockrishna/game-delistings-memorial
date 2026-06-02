@@ -22,7 +22,7 @@ export default async function AboutPage() {
   return (
     <UShell total={total}>
       <div style={{ padding: "32px 36px 8px", maxWidth: 820 }}>
-        <div className="strap">ABOUT · HOW THIS CATALOGUE IS SOURCED</div>
+        <div className="strap">ABOUT THE DATA</div>
         <h2 className="font-serif" style={{ fontSize: 34, margin: "6px 0 4px", fontWeight: 600 }}>
           Where the data comes from
         </h2>

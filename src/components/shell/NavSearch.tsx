@@ -88,7 +88,7 @@ export default function NavSearch() {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="Search titles, publishers, developers…  ⌘K"
+        placeholder="Search titles, publishers, developers…"
         aria-label="Search the catalogue"
       />
       {q ? (

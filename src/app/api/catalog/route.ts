@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     perspective: list(p, "perspective"),
     rating: list(p, "rating"),
     hasCover: p.get("hasCover") === "1",
+    match: p.get("match") === "any" ? "any" : "all",
     sort: (validSort.includes(sortParam ?? "") ? sortParam : "title") as CatalogQuery["sort"],
     page: Number(p.get("page") ?? "1") || 1,
     pageSize: Number(p.get("pageSize") ?? "24") || 24,

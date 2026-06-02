@@ -142,6 +142,9 @@ export type CatalogQuery = {
   perspective?: string[];
   rating?: string[];
   hasCover?: boolean;
+  // How the selected facet groups combine: "all" = AND (narrow), "any" = OR
+  // (broaden). Free-text search and the cover filter are always AND.
+  match?: "all" | "any";
   sort?: "title" | "rating" | "year" | "year-asc";
   page?: number;
   pageSize?: number;
@@ -161,6 +164,7 @@ export type FacetKey =
 export type Facets = Record<FacetKey, Array<{ name: string; count: number }>>;
 
 function matchesQuery(card: GameCard, q: CatalogQuery): boolean {
+  // Always-AND constraints: free-text search and the cover-art filter.
   if (q.search) {
     const s = q.search.toLowerCase();
     const hay = [
@@ -176,17 +180,22 @@ function matchesQuery(card: GameCard, q: CatalogQuery): boolean {
       .toLowerCase();
     if (!hay.includes(s)) return false;
   }
-  if (q.platform?.length && !q.platform.some((p) => card.platforms.includes(p))) return false;
-  if (q.decade?.length && (!card.decade || !q.decade.includes(card.decade))) return false;
-  if (q.genre?.length && !q.genre.some((g) => card.genres.includes(g))) return false;
-  if (q.publisher?.length && (!card.publisher || !q.publisher.includes(card.publisher))) return false;
-  if (q.developer?.length && (!card.developer || !q.developer.includes(card.developer))) return false;
-  if (q.mode?.length && !q.mode.some((m) => card.gameModes.includes(m))) return false;
-  if (q.theme?.length && !q.theme.some((t) => card.themes.includes(t))) return false;
-  if (q.perspective?.length && !q.perspective.some((p) => card.perspectives.includes(p))) return false;
-  if (q.rating?.length && !q.rating.includes(ratingBucket(card.rating))) return false;
   if (q.hasCover && !card.hasCover) return false;
-  return true;
+
+  // Facet groups combine by AND ("all") or OR ("any").
+  const groups: boolean[] = [];
+  if (q.platform?.length) groups.push(q.platform.some((p) => card.platforms.includes(p)));
+  if (q.decade?.length) groups.push(!!card.decade && q.decade.includes(card.decade));
+  if (q.genre?.length) groups.push(q.genre.some((g) => card.genres.includes(g)));
+  if (q.publisher?.length) groups.push(!!card.publisher && q.publisher.includes(card.publisher));
+  if (q.developer?.length) groups.push(!!card.developer && q.developer.includes(card.developer));
+  if (q.mode?.length) groups.push(q.mode.some((m) => card.gameModes.includes(m)));
+  if (q.theme?.length) groups.push(q.theme.some((t) => card.themes.includes(t)));
+  if (q.perspective?.length) groups.push(q.perspective.some((p) => card.perspectives.includes(p)));
+  if (q.rating?.length) groups.push(q.rating.includes(ratingBucket(card.rating)));
+
+  if (!groups.length) return true;
+  return q.match === "any" ? groups.some(Boolean) : groups.every(Boolean);
 }
 
 export async function getCatalog(q: CatalogQuery) {

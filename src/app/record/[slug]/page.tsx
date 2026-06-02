@@ -48,7 +48,7 @@ export default async function RecordPage({
             {g.coverUrl ? (
               <img src={g.coverUrl} alt={`${g.title} cover`} />
             ) : null}
-            <div className="label">FRONTISPIECE · IGDB</div>
+            <div className="label">FRONTISPIECE</div>
             <div className="corner-tag">{g.callNumber}</div>
           </div>
           <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -94,9 +94,9 @@ export default async function RecordPage({
           ) : null}
 
           <hr className="hr" style={{ margin: "22px 0" }} />
-          <div className="strap">SUMMARY · FROM IGDB</div>
+          <div className="strap">SUMMARY</div>
           <p className="font-serif" style={{ color: "var(--ink-2)", marginTop: 6, maxWidth: 640, fontSize: 14 }}>
-            {g.summary ?? "No summary available from IGDB for this title."}
+            {g.summary ?? "No summary available for this title."}
           </p>
 
           {g.adjacent.length ? (
@@ -122,11 +122,11 @@ export default async function RecordPage({
 
         <aside style={{ padding: "24px 20px" }}>
           <div style={{ border: "1.5px solid var(--ink)", padding: 16, background: "var(--paper-2)" }}>
-            <div className="strap accent">SOURCE · IGDB</div>
+            <div className="strap accent">EXTERNAL ENTRY</div>
             <div className="font-serif" style={{ fontSize: 18, fontWeight: 600, marginTop: 6, lineHeight: 1.2 }}>View on IGDB</div>
-            <div className="font-serif muted" style={{ fontStyle: "italic", fontSize: 12, marginTop: 4 }}>
-              All metadata for this record is sourced from IGDB. Open the
-              canonical entry for cover assets, screenshots, and external links.
+            <div className="font-serif muted" style={{ fontStyle: "italic", fontSize: 13, marginTop: 4 }}>
+              Open the canonical entry for cover assets, screenshots, and
+              external links.
             </div>
             <a
               href={igdbUrl}

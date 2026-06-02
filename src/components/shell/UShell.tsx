@@ -9,7 +9,7 @@ const NAV = [
   { key: "overview", label: "Overview", href: "/" },
   { key: "catalog", label: "The Catalog", href: "/catalog" },
   { key: "insights", label: "Insights", href: "/insights" },
-  { key: "about", label: "About IGDB sourcing", href: "/about-igdb" },
+  { key: "about", label: "About the data", href: "/about-igdb" },
 ];
 
 function surfaceOf(pathname: string): string {
@@ -38,7 +38,7 @@ export default function UShell({
             CATALOGUE OF DELISTED VIDEO GAMES · vol. iv · {total.toLocaleString()} records
           </div>
           <h1>Delisted Games Tracker</h1>
-          <div className="masthead-sub">a database of withdrawn titles · metadata via IGDB · RAWG fallback</div>
+          <div className="masthead-sub">a database of withdrawn titles</div>
         </div>
         <div className="masthead-actions">
           <ThemeToggle />
