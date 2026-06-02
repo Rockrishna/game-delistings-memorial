@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -160,15 +160,26 @@ function FacetSection({
   );
 }
 
-export default function CatalogBrowser() {
+export default function CatalogBrowser({
+  initial = null,
+  initialQuery = null,
+}: {
+  initial?: ApiResult | null;
+  initialQuery?: string | null;
+}) {
   const router = useRouter();
   const sp = useSearchParams();
-  const mode = sp.get("mode") === "advanced" ? "advanced" : "simple";
+  // View toggle uses its own `view` param so it never collides with the
+  // "Mode" (game-mode) facet, which lives on `mode`.
+  const mode = sp.get("view") === "advanced" ? "advanced" : "simple";
 
-  const [data, setData] = useState<ApiResult | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ApiResult | null>(initial);
+  const [loading, setLoading] = useState(initial == null);
   const [queryText, setQueryText] = useState("");
   const [railOpen, setRailOpen] = useState(false);
+  // Server already rendered the data for this exact query string; skip the
+  // first client fetch so the page paints straight from the DB cache.
+  const hydratedFor = useRef<string | null>(initial ? initialQuery : null);
 
   const filters = useMemo(() => {
     const f: Record<string, string[]> = {};
@@ -196,6 +207,11 @@ export default function CatalogBrowser() {
   }, [filters, page, sort, hasCover]);
 
   useEffect(() => {
+    // First render already has server data for this query string.
+    if (hydratedFor.current === queryString) {
+      hydratedFor.current = "__used__";
+      return;
+    }
     let cancelled = false;
     (async () => {
       await Promise.resolve();
@@ -224,7 +240,10 @@ export default function CatalogBrowser() {
   );
 
   function setMode(next: "simple" | "advanced") {
-    pushParams((p) => p.set("mode", next));
+    pushParams((p) => {
+      if (next === "advanced") p.set("view", "advanced");
+      else p.delete("view");
+    });
   }
 
   function toggleFacet(param: string, value: string) {
@@ -255,7 +274,7 @@ export default function CatalogBrowser() {
       p.delete("q");
       for (const [k, vals] of Object.entries(parsed)) for (const v of vals) p.append(k, v);
       p.set("page", "1");
-      p.set("mode", "advanced");
+      p.set("view", "advanced");
     });
   }
 

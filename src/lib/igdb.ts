@@ -365,7 +365,7 @@ export async function searchIGDBGameByName(name: string): Promise<
 > {
   const rows = await buildAndQuery<IGDBGame>(
     "games",
-    `games:search:${name.toLowerCase()}:enriched:l10`,
+    `games:search:${name.toLowerCase()}:enriched2:l10`,
     THIRTY_DAYS_MS,
     { fields: GAME_FIELDS, search: name, limit: 10 }
   );
@@ -389,7 +389,7 @@ export async function fetchIGDBGamesByIds(
   const sortedIds = [...ids].sort((a, b) => a - b);
   const rows = await buildAndQuery<IGDBGame>(
     "games",
-    `games:ids:${sortedIds.join(",")}:enriched`,
+    `games:ids:${sortedIds.join(",")}:enriched2`,
     THIRTY_DAYS_MS,
     {
       fields: GAME_FIELDS,
@@ -462,7 +462,7 @@ export async function fetchGamesByStatus(opts: {
   if (typeof since === "number" && since > 0) {
     whereClauses.push(`updated_at > ${Math.floor(since)}`);
   }
-  const cacheKey = `games:status:${sorted.join(",")}${since ? `:since${Math.floor(since)}` : ""}:o${offset}:l${limit}:enriched`;
+  const cacheKey = `games:status:${sorted.join(",")}${since ? `:since${Math.floor(since)}` : ""}:o${offset}:l${limit}:enriched2`;
 
   const rows = await buildAndQuery<IGDBGame>("games", cacheKey, 7 * ONE_DAY_MS, {
     fields: GAME_FIELDS,

@@ -41,6 +41,24 @@ function BarList({
   );
 }
 
+function Empty({ label }: { label: string }) {
+  return (
+    <div
+      className="font-serif muted"
+      style={{
+        fontStyle: "italic",
+        fontSize: 13,
+        padding: "18px 0",
+        border: "1px dashed var(--rule)",
+        textAlign: "center",
+        color: "var(--ink-3)",
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
 function Section({
   strap,
   title,
@@ -70,6 +88,8 @@ export default async function InsightsPage() {
   const i = await getInsights();
   const heatMax = Math.max(1, ...i.heatmap.values.flat());
   const histMax = Math.max(1, ...i.ratingHist.map((b) => b.count));
+  const ratedDecades = i.ratingByDecade.filter((d) => d.avg > 0);
+  const avgMax = Math.max(1, ...ratedDecades.map((d) => d.avg));
 
   const headline: Array<[string, string, string, string | null]> = [
     ["TOTAL", i.total.toLocaleString(), "records", null],
@@ -173,12 +193,18 @@ export default async function InsightsPage() {
       <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap">DISPLAY III · RATING DISTRIBUTION</div>
-          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 16px" }}>Were they good?</h3>
+          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 6px" }}>Were they good?</h3>
+          <p className="font-serif muted" style={{ fontStyle: "italic", margin: "0 0 16px", fontSize: 13 }}>
+            IGDB user score, bucketed, across the {i.ratingHist.reduce((s, b) => s + b.count, 0).toLocaleString()} rated titles.
+          </p>
           <div className="hist">
             {i.ratingHist.map((b, idx) => (
               <div key={b.bucket} className="hist-col">
                 <div className="font-mono muted" style={{ fontSize: 10 }}>{b.count}</div>
-                <div className={`hist-bar ${idx >= 4 ? "accent" : ""}`} style={{ height: `${(b.count / histMax) * 100}%` }} />
+                <div
+                  className={`hist-bar ${idx >= 4 ? "accent" : ""}`}
+                  style={{ height: b.count ? `${Math.max(4, (b.count / histMax) * 100)}%` : "0%" }}
+                />
                 <div className="font-mono muted" style={{ fontSize: 10, marginTop: 4 }}>{b.bucket}</div>
               </div>
             ))}
@@ -239,16 +265,25 @@ export default async function InsightsPage() {
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap">DISPLAY IX · GAME MODES</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>How they were played</h3>
-          <BarList rows={i.byMode} hrefFor={(n) => `/catalog?mode=${enc(n)}`} />
+          {i.byMode.length ? (
+            <BarList rows={i.byMode} hrefFor={(n) => `/catalog?mode=${enc(n)}`} />
+          ) : (
+            <Empty label="Game-mode metadata is still being enriched from IGDB." />
+          )}
         </div>
         <div style={{ padding: "24px 32px" }}>
           <div className="strap">DISPLAY X · PERSPECTIVE</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>Point of view</h3>
-          <BarList rows={i.byPerspective} hrefFor={(n) => `/catalog?perspective=${enc(n)}`} />
+          {i.byPerspective.length ? (
+            <BarList rows={i.byPerspective} hrefFor={(n) => `/catalog?perspective=${enc(n)}`} />
+          ) : (
+            <Empty label="Player-perspective metadata is still being enriched from IGDB." />
+          )}
         </div>
       </div>
 
       <Section strap="DISPLAY XI · THEMES" title="The moods we have lost">
+        {i.byTheme.length ? (
         <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
           <div className="treemap">
             {i.byTheme.map((t, idx) => {
@@ -267,25 +302,32 @@ export default async function InsightsPage() {
             })}
           </div>
         </div>
+        ) : (
+          <Empty label="Theme metadata is still being enriched from IGDB." />
+        )}
       </Section>
 
       <Section
         strap="DISPLAY XII · QUALITY OVER TIME"
         title="Average IGDB rating by decade"
-        note="Does the catalogue skew toward forgotten gems or shovelware? Decade by decade."
+        note="Average IGDB user rating among rated titles, decade by decade. Bars are scaled to the highest-rated decade so differences are legible."
       >
-        <div className="hist" style={{ height: 150 }}>
-          {i.ratingByDecade.map((d) => (
-            <div key={d.name} className="hist-col">
-              <div className="font-mono muted" style={{ fontSize: 10 }}>{d.avg || "—"}</div>
-              <div
-                className={`hist-bar ${d.avg >= 75 ? "accent" : ""}`}
-                style={{ height: `${(d.avg / 100) * 100}%` }}
-              />
-              <div className="font-mono muted" style={{ fontSize: 10, marginTop: 4 }}>{d.name}</div>
-            </div>
-          ))}
-        </div>
+        {ratedDecades.length ? (
+          <div className="hist" style={{ height: 150 }}>
+            {ratedDecades.map((d) => (
+              <div key={d.name} className="hist-col">
+                <div className="font-mono muted" style={{ fontSize: 10 }}>{d.avg}</div>
+                <div
+                  className={`hist-bar ${d.avg >= 75 ? "accent" : ""}`}
+                  style={{ height: `${Math.max(6, (d.avg / avgMax) * 100)}%` }}
+                />
+                <div className="font-mono muted" style={{ fontSize: 10, marginTop: 4 }}>{d.name}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty label="Not enough rated titles yet to chart quality over time." />
+        )}
       </Section>
 
       {i.byFranchise.length ? (
