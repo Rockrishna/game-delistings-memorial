@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { fetchIGDBGamesByIds } from "@/lib/igdb";
 import { fetchRawgFallback } from "@/lib/rawg";
+import { invalidateCatalogCache } from "@/lib/catalog";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest) {
       updated += 1;
     }
 
+    invalidateCatalogCache();
     const remaining = await prisma.game.count({ where: { gameModes: null } });
 
     return NextResponse.json({

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import UShell from "@/components/shell/UShell";
 import CatalogBrowser from "@/components/catalog/CatalogBrowser";
-import { getCatalog, getOverview, type CatalogQuery } from "@/lib/catalog";
+import { getCatalog, getTotalCount, type CatalogQuery } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +74,7 @@ export default async function CatalogPage({
   if (match === "any") canonical.set("match", "any");
   canonical.set("pageSize", "24");
 
-  const [{ total }, initial] = await Promise.all([getOverview(), getCatalog(query)]);
+  const [total, initial] = await Promise.all([getTotalCount(), getCatalog(query)]);
 
   return (
     <UShell total={total}>

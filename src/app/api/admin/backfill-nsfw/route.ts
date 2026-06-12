@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isNsfwGame, type AgeRating } from "@/lib/nsfw";
+import { invalidateCatalogCache } from "@/lib/catalog";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export async function GET() {
       else unflagged += 1;
     }
 
+    invalidateCatalogCache();
     const nsfwTotal = await prisma.game.count({ where: { nsfw: true } });
 
     return NextResponse.json({

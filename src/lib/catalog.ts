@@ -89,16 +89,44 @@ function toCard(g: GameWithRels): GameCard {
   };
 }
 
+/* ---------------- In-memory card cache ----------------
+ * The catalogue only changes when a sync runs, yet every surface (catalog,
+ * overview, insights, the API behind search and infinite scroll) used to
+ * re-read the whole games table per request. All read paths now share one
+ * cached load; the TTL keeps long-lived instances from going stale and the
+ * sync route invalidates explicitly.
+ */
+const CARD_CACHE_TTL_MS = 5 * 60 * 1000;
+let cardCache: { at: number; cards: GameCard[] } | null = null;
+let cardCacheInFlight: Promise<GameCard[]> | null = null;
+
+export function invalidateCatalogCache() {
+  cardCache = null;
+}
+
+async function getAllCards(): Promise<GameCard[]> {
+  if (cardCache && Date.now() - cardCache.at < CARD_CACHE_TTL_MS) {
+    return cardCache.cards;
+  }
+  // Coalesce concurrent misses into a single DB read.
+  if (cardCacheInFlight) return cardCacheInFlight;
+  cardCacheInFlight = (async () => {
+    try {
+      const rows = await prisma.game.findMany({ include: gameInclude });
+      const cards = rows.map(toCard);
+      cardCache = { at: Date.now(), cards };
+      return cards;
+    } finally {
+      cardCacheInFlight = null;
+    }
+  })();
+  return cardCacheInFlight;
+}
+
 /* ---------------- Overview ---------------- */
 
 export async function getOverview() {
-  const games = await prisma.game.findMany({
-    select: {
-      decade: true,
-      publisher: true,
-      platforms: { select: { platform: { select: { name: true } } } },
-    },
-  });
+  const games = await getAllCards();
 
   const total = games.length;
   const byFamily = new Map<string, number>();
@@ -108,8 +136,7 @@ export async function getOverview() {
   for (const g of games) {
     if (g.decade) decades.add(g.decade);
     if (g.publisher) publishers.add(g.publisher);
-    const fams = new Set(g.platforms.map((p) => platformFamily(p.platform.name)));
-    for (const f of fams) byFamily.set(f, (byFamily.get(f) ?? 0) + 1);
+    for (const f of g.platforms) byFamily.set(f, (byFamily.get(f) ?? 0) + 1);
   }
 
   const byPlatform = [...byFamily.entries()]
@@ -205,13 +232,11 @@ function matchesQuery(card: GameCard, q: CatalogQuery): boolean {
 }
 
 export async function getCatalog(q: CatalogQuery) {
-  const rows = await prisma.game.findMany({ include: gameInclude });
+  const all = await getAllCards();
   // NSFW titles drop out of the browsable view (rows + facets) unless the
   // visitor opted in. Insights/overview never call this, so the data stays
   // whole for aggregates.
-  const cards = q.includeNsfw
-    ? rows.map(toCard)
-    : rows.map(toCard).filter((c) => !c.nsfw);
+  const cards = q.includeNsfw ? all : all.filter((c) => !c.nsfw);
 
   const filtered = cards.filter((c) => matchesQuery(c, q));
 
@@ -294,8 +319,7 @@ function buildFacets(cards: GameCard[]): Facets {
 /* ---------------- Insights ---------------- */
 
 export async function getInsights() {
-  const rows = await prisma.game.findMany({ include: gameInclude });
-  const cards = rows.map(toCard);
+  const cards = await getAllCards();
   const total = cards.length;
 
   const familyCounts = new Map<string, number>();
@@ -444,11 +468,11 @@ export async function getRecord(slug: string, opts?: { includeNsfw?: boolean }) 
   });
   if (!g) return null;
 
-  const insights = await prisma.game.aggregate({
-    where: { rating: { not: null } },
-    _avg: { rating: true },
-  });
-  const medianRating = insights._avg.rating ? Math.round(insights._avg.rating) : null;
+  const all = await getAllCards();
+  const rated = all.filter((c) => c.rating != null);
+  const medianRating = rated.length
+    ? Math.round(rated.reduce((s, c) => s + (c.rating ?? 0), 0) / rated.length)
+    : null;
 
   const adjacent = await prisma.game.findMany({
     where: {
@@ -484,7 +508,7 @@ export async function getRecord(slug: string, opts?: { includeNsfw?: boolean }) 
 }
 
 export async function getTotalCount(): Promise<number> {
-  return prisma.game.count();
+  return (await getAllCards()).length;
 }
 
 export async function getAllRecordSlugs(): Promise<string[]> {

@@ -35,5 +35,11 @@ export async function GET(request: NextRequest) {
   };
 
   const result = await getCatalog(query);
-  return NextResponse.json(result);
+  return NextResponse.json(result, {
+    headers: {
+      // Let the CDN serve repeat queries (search-as-you-type, infinite
+      // scroll, shared filter URLs) without touching the lambda at all.
+      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    },
+  });
 }

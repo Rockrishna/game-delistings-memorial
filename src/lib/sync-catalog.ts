@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { invalidateCatalogCache } from "@/lib/catalog";
 import {
   getDelistedStatusIds,
   fetchGamesByStatus,
@@ -88,6 +89,7 @@ export async function syncCatalogFromIGDB(opts?: {
     if (games.length < PAGE_SIZE) break;
   }
 
+  invalidateCatalogCache();
   return summary;
 }
 
