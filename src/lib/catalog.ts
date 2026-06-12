@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -461,7 +462,12 @@ export async function getInsights() {
 
 /* ---------------- Record ---------------- */
 
-export async function getRecord(slug: string, opts?: { includeNsfw?: boolean }) {
+// React cache() dedupes the generateMetadata + page-body calls within one
+// request into a single set of queries.
+export const getRecord = cache(async function getRecord(
+  slug: string,
+  opts?: { includeNsfw?: boolean }
+) {
   const g = await prisma.game.findFirst({
     where: { OR: [{ slug }, { id: slug }] },
     include: gameInclude,
@@ -469,10 +475,11 @@ export async function getRecord(slug: string, opts?: { includeNsfw?: boolean }) 
   if (!g) return null;
 
   const all = await getAllCards();
-  const rated = all.filter((c) => c.rating != null);
-  const medianRating = rated.length
-    ? Math.round(rated.reduce((s, c) => s + (c.rating ?? 0), 0) / rated.length)
-    : null;
+  const rated = all
+    .map((c) => c.rating)
+    .filter((r): r is number => r != null)
+    .sort((a, b) => a - b);
+  const medianRating = rated.length ? rated[Math.floor(rated.length / 2)] : null;
 
   const adjacent = await prisma.game.findMany({
     where: {
@@ -505,7 +512,7 @@ export async function getRecord(slug: string, opts?: { includeNsfw?: boolean }) 
     medianRating,
     adjacent: adjacent.map(toCard),
   };
-}
+});
 
 export async function getTotalCount(): Promise<number> {
   return (await getAllCards()).length;

@@ -81,6 +81,7 @@ function FacetSection({
     <div style={{ borderBottom: "1px solid var(--rule-soft)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
         style={{
           width: "100%",
           display: "flex",
@@ -101,7 +102,7 @@ function FacetSection({
           {label}
           {activeCount ? ` · ${activeCount}` : ""}
         </span>
-        <span style={{ color: "var(--ink-3)" }}>{open ? "−" : "+"}</span>
+        <span aria-hidden style={{ color: "var(--ink-3)" }}>{open ? "−" : "+"}</span>
       </button>
       {open ? (
         <div style={{ paddingBottom: 12 }}>
@@ -110,7 +111,7 @@ function FacetSection({
             return (
               <label
                 key={o.name}
-                className="font-serif"
+                className="font-serif checkrow"
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
@@ -123,6 +124,8 @@ function FacetSection({
               >
                 <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span
+                    className="checkbox"
+                    aria-hidden
                     style={{
                       display: "inline-block",
                       width: 11,
@@ -136,7 +139,6 @@ function FacetSection({
                     type="checkbox"
                     checked={checked}
                     onChange={() => onToggle(param, o.name)}
-                    style={{ display: "none" }}
                   />
                   {o.name}
                 </span>
@@ -293,7 +295,8 @@ export default function CatalogBrowser({
 
   function goPage(n: number) {
     pushParams((p) => p.set("page", String(n)));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
   }
 
   function setMatch(next: "all" | "any") {
@@ -311,7 +314,11 @@ export default function CatalogBrowser({
   const activeFilterCount = activeChips.length + (hasCover ? 1 : 0);
 
   const rail = (
-    <aside className="catalog-rail" style={{ borderRight: "1.5px solid var(--ink)", padding: "16px 20px 24px" }}>
+    <aside
+      className="catalog-rail"
+      aria-label="Catalog filters"
+      style={{ borderRight: "1.5px solid var(--ink)", padding: "16px 20px 24px" }}
+    >
       <div
         style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}
       >
@@ -334,6 +341,7 @@ export default function CatalogBrowser({
             <button
               key={val}
               onClick={() => setMatch(val)}
+              aria-pressed={matchMode === val}
               title={val === "all" ? "Show records matching every selected filter" : "Show records matching any selected filter"}
               style={{
                 flex: 1,
@@ -361,6 +369,7 @@ export default function CatalogBrowser({
             <button
               key={`${k}:${v}`}
               className="chip accent"
+              aria-label={`Remove filter ${v}`}
               onClick={() =>
                 pushParams((p) => {
                   const cur = p.getAll(k).flatMap((x) => x.split(",")).filter(Boolean);
@@ -377,10 +386,12 @@ export default function CatalogBrowser({
       ) : null}
 
       <label
-        className="font-serif"
+        className="font-serif checkrow"
         style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 0 12px", fontSize: 13, cursor: "pointer", borderBottom: "1px solid var(--rule-soft)" }}
       >
         <span
+          className="checkbox"
+          aria-hidden
           style={{ display: "inline-block", width: 11, height: 11, border: "1px solid var(--ink-3)", background: hasCover ? "var(--ink)" : "transparent" }}
         />
         <input
@@ -393,7 +404,6 @@ export default function CatalogBrowser({
               p.set("page", "1");
             })
           }
-          style={{ display: "none" }}
         />
         Has cover art only
       </label>
@@ -433,6 +443,7 @@ export default function CatalogBrowser({
             <button
               key={m}
               onClick={() => setMode(m)}
+              aria-pressed={mode === m}
               style={{
                 border: 0,
                 padding: "6px 14px",
@@ -460,6 +471,7 @@ export default function CatalogBrowser({
               value={queryText}
               onChange={(e) => setQueryText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runAdvanced()}
+              aria-label="Advanced query"
               placeholder='where platform:Steam decade:2010s rating:"≥ 90" theme:Horror'
               style={{ flex: 1, background: "none", border: 0, outline: "none", fontFamily: "var(--mono)", fontSize: 14, color: "var(--ink)" }}
             />
@@ -480,11 +492,12 @@ export default function CatalogBrowser({
         <button
           className="chip"
           onClick={() => setRailOpen((v) => !v)}
+          aria-expanded={railOpen}
         >
           {railOpen ? "▾ hide filters" : "▸ filters"}
           {activeFilterCount ? ` · ${activeFilterCount}` : ""}
         </button>
-        <span className="font-serif" style={{ flex: 1, minWidth: 120 }}>
+        <span className="font-serif" aria-live="polite" style={{ flex: 1, minWidth: 120 }}>
           <strong>{(data?.total ?? 0).toLocaleString()}</strong> records
           {loading ? <span className="muted" style={{ fontStyle: "italic" }}> · loading…</span> : null}
         </span>
@@ -492,6 +505,7 @@ export default function CatalogBrowser({
           value={sort}
           onChange={(e) => pushParams((p) => p.set("sort", e.target.value))}
           className="chip"
+          aria-label="Sort records"
           style={{ appearance: "none" }}
         >
           <option value="title">sort : title</option>
@@ -508,12 +522,28 @@ export default function CatalogBrowser({
       >
         {railOpen ? (
           <>
-            <div className="rail-backdrop" onClick={() => setRailOpen(false)} />
+            <div className="rail-backdrop" aria-hidden onClick={() => setRailOpen(false)} />
             {rail}
           </>
         ) : null}
 
-        <section className={`results${loading ? " is-loading" : ""}`} style={{ padding: "20px 24px" }}>
+        <section
+          className={`results${loading ? " is-loading" : ""}`}
+          aria-busy={loading}
+          style={{ padding: "20px 24px" }}
+        >
+          {!loading && data && data.total === 0 ? (
+            <div style={{ textAlign: "center", padding: "48px 20px" }}>
+              <p className="font-serif" style={{ fontStyle: "italic", fontSize: 16, color: "var(--ink-2)", margin: 0 }}>
+                No cards match this combination of filters.
+              </p>
+              {activeFilterCount ? (
+                <button className="chip accent" style={{ marginTop: 14 }} onClick={clearAll}>
+                  clear all filters
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           {mode === "simple" ? (
             <div className="cardgrid tight">
               {(data?.rows ?? []).map((g) => (
@@ -521,7 +551,7 @@ export default function CatalogBrowser({
                   <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>{g.callNumber}</div>
                   <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
                     {g.coverUrl ? (
-                      <img src={g.coverUrl} alt={`${g.title} cover`} loading="lazy" decoding="async" />
+                      <img src={g.coverUrl} alt={`${g.title} cover`} width={264} height={374} loading="lazy" decoding="async" />
                     ) : (
                       <div className="label" style={{ fontSize: 8 }}>{(g.platforms[0] ?? "—").slice(0, 6).toUpperCase()}</div>
                     )}
@@ -572,12 +602,12 @@ export default function CatalogBrowser({
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 24, flexWrap: "wrap" }}>
-            <button className="chip" disabled={page <= 1} onClick={() => goPage(page - 1)}>‹ prev</button>
-            <span className="chip solid">{page}</span>
+          <nav aria-label="Pagination" style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 24, flexWrap: "wrap" }}>
+            <button className="chip" disabled={page <= 1} onClick={() => goPage(page - 1)} aria-label="Previous page">‹ prev</button>
+            <span className="chip solid" aria-current="page">{page}</span>
             <span className="chip">of {data?.pages ?? 1}</span>
-            <button className="chip" disabled={page >= (data?.pages ?? 1)} onClick={() => goPage(page + 1)}>next ›</button>
-          </div>
+            <button className="chip" disabled={page >= (data?.pages ?? 1)} onClick={() => goPage(page + 1)} aria-label="Next page">next ›</button>
+          </nav>
         </section>
       </div>
     </>

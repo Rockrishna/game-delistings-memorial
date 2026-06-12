@@ -5,6 +5,12 @@ import { getCatalog, getTotalCount, type CatalogQuery } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "The Catalog",
+  description:
+    "Browse and filter every delisted game on record — by storefront, decade, genre, publisher, rating, and more.",
+};
+
 // Facet param → display order. Must match FACETS in CatalogBrowser so the
 // server-rendered query string is byte-identical to the client's (lets the
 // browser skip the first fetch and paint straight from the DB cache).

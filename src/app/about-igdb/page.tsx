@@ -4,6 +4,12 @@ import { getIgdbCacheStats } from "@/lib/igdb";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "About the data",
+  description:
+    "How this catalogue of delisted games is assembled: IGDB as the primary source, RAWG as a fallback, refreshed on a weekly sync.",
+};
+
 function Block({ strap, title, children }: { strap: string; title: string; children: React.ReactNode }) {
   return (
     <div style={{ padding: "26px 0", borderTop: "1px solid var(--rule)" }}>

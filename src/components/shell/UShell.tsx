@@ -33,7 +33,10 @@ export default function UShell({
 
   return (
     <div className="app">
-      <div className="masthead">
+      <a href="#main" className="skip-link">
+        Skip to main content
+      </a>
+      <header className="masthead">
         <div>
           <div className="deweystrip">
             CATALOGUE OF DELISTED VIDEO GAMES · vol. iv · {total.toLocaleString()} records
@@ -41,12 +44,17 @@ export default function UShell({
           <h1>Delisted Games Tracker</h1>
           <div className="masthead-sub">a database of withdrawn titles</div>
         </div>
-      </div>
+      </header>
 
       <div className="navwrap">
-        <nav className="navrow">
+        <nav className="navrow" aria-label="Primary">
           {NAV.map((n) => (
-            <Link key={n.key} className={active === n.key ? "on" : ""} href={n.href}>
+            <Link
+              key={n.key}
+              className={active === n.key ? "on" : ""}
+              aria-current={active === n.key ? "page" : undefined}
+              href={n.href}
+            >
               {n.label}
             </Link>
           ))}
@@ -58,7 +66,7 @@ export default function UShell({
         <NavSearch />
       </div>
 
-      <main className="canvas">{children}</main>
+      <main id="main" className="canvas">{children}</main>
     </div>
   );
 }

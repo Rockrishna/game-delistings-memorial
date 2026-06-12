@@ -23,6 +23,7 @@ export default function NavSearch() {
   const [igdb, setIgdb] = useState<IgdbResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -49,16 +50,25 @@ export default function NavSearch() {
       setHits([]);
       return;
     }
+    // Abort the in-flight request so a slow earlier query can never
+    // overwrite the results of a newer one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setIgdb(null);
     try {
       const res = await fetch(
-        `/api/catalog?q=${encodeURIComponent(term)}&pageSize=8${showNsfw ? "&nsfw=1" : ""}`
+        `/api/catalog?q=${encodeURIComponent(term)}&pageSize=8${showNsfw ? "&nsfw=1" : ""}`,
+        { signal: controller.signal }
       );
       const data = await res.json();
       setHits(data.rows ?? []);
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") throw err;
+      return;
     } finally {
-      setLoading(false);
+      if (abortRef.current === controller) setLoading(false);
     }
   }, [showNsfw]);
 
@@ -81,9 +91,28 @@ export default function NavSearch() {
     }
   }
 
+  const popOpen = open && q.trim().length >= 2;
+
+  // Arrow keys move between the input and result rows.
+  function onListKeyDown(e: React.KeyboardEvent) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    const rows = boxRef.current?.querySelectorAll<HTMLElement>(".navsearch-row");
+    if (!rows?.length) return;
+    e.preventDefault();
+    const list = [...rows];
+    const idx = list.indexOf(document.activeElement as HTMLElement);
+    if (e.key === "ArrowDown") {
+      (idx < 0 ? list[0] : list[Math.min(idx + 1, list.length - 1)]).focus();
+    } else if (idx === 0) {
+      inputRef.current?.focus();
+    } else if (idx > 0) {
+      list[idx - 1].focus();
+    }
+  }
+
   return (
-    <div className="navsearch" ref={boxRef}>
-      <span className="navsearch-glyph">⌕</span>
+    <div className="navsearch" ref={boxRef} role="search" onKeyDown={onListKeyDown}>
+      <span className="navsearch-glyph" aria-hidden>⌕</span>
       <input
         ref={inputRef}
         value={q}
@@ -94,15 +123,21 @@ export default function NavSearch() {
         onFocus={() => setOpen(true)}
         placeholder="Search titles, publishers, developers…"
         aria-label="Search the catalogue"
+        role="combobox"
+        aria-expanded={popOpen}
+        aria-controls="navsearch-results"
+        aria-autocomplete="list"
+        type="search"
+        autoComplete="off"
       />
       {q ? (
-        <button className="navsearch-clear" onClick={() => { setQ(""); setHits([]); }} aria-label="Clear">
+        <button className="navsearch-clear" onClick={() => { setQ(""); setHits([]); }} aria-label="Clear search">
           ✕
         </button>
       ) : null}
 
-      {open && q.trim().length >= 2 ? (
-        <div className="navsearch-pop">
+      {popOpen ? (
+        <div className="navsearch-pop" id="navsearch-results">
           {hits.map((h) => (
             <Link
               key={h.slug}
@@ -135,7 +170,7 @@ export default function NavSearch() {
               )}
             </div>
           ) : null}
-          {loading ? <div className="strap" style={{ padding: 12 }}>searching…</div> : null}
+          {loading ? <div className="strap" role="status" style={{ padding: 12 }}>searching…</div> : null}
         </div>
       ) : null}
     </div>

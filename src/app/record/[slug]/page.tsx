@@ -5,6 +5,26 @@ import { getRecord, getTotalCount } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const g = await getRecord(slug);
+  if (!g) return { title: "Record not found" };
+  const bits = [g.year, g.publisher, g.platforms.join(", ")].filter(Boolean);
+  return {
+    title: g.title,
+    description: `${g.title} (${bits.join(" · ") || "delisted game"}) — catalog record ${g.callNumber} in the Delisted Games Tracker.`,
+    openGraph: {
+      title: g.title,
+      description: g.summary?.slice(0, 200) ?? `Catalog record for the delisted game ${g.title}.`,
+      images: g.coverUrl ? [{ url: g.coverUrl }] : undefined,
+    },
+  };
+}
+
 export default async function RecordPage({
   params,
 }: {
@@ -47,7 +67,7 @@ export default async function RecordPage({
           {/* maxWidth keeps the cover postcard-sized when columns stack on phones */}
           <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4", maxWidth: 300, marginInline: "auto" }}>
             {g.coverUrl ? (
-              <img src={g.coverUrl} alt={`${g.title} cover`} />
+              <img src={g.coverUrl} alt={`${g.title} cover`} width={264} height={374} fetchPriority="high" />
             ) : null}
             <div className="label">FRONTISPIECE</div>
             <div className="corner-tag">{g.callNumber}</div>
@@ -57,13 +77,13 @@ export default async function RecordPage({
             {g.enrichedFrom ? <span className="chip">{g.enrichedFrom}</span> : null}
           </div>
 
-          <div className="bar-row" style={{ marginTop: 24 }}>
+          <div className="bar-row" style={{ marginTop: 24 }} role="img" aria-label={`IGDB rating ${g.rating ?? "unrated"} out of 100`}>
             <span className="bar-name">Rating</span>
             <span className="bar-track"><span className="bar-fill accent" style={{ width: `${g.rating ?? 0}%` }} /></span>
             <span className="bar-count">{g.rating ?? "—"}</span>
           </div>
           {g.medianRating != null ? (
-            <div className="bar-row">
+            <div className="bar-row" role="img" aria-label={`Catalogue median rating ${g.medianRating} out of 100`}>
               <span className="bar-name">Median</span>
               <span className="bar-track"><span className="bar-fill" style={{ width: `${g.medianRating}%` }} /></span>
               <span className="bar-count">{g.medianRating}</span>
@@ -73,14 +93,14 @@ export default async function RecordPage({
 
         <div style={{ padding: "24px 28px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap">CATALOG RECORD</div>
-          <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 10, columnGap: 18, marginTop: 10, fontSize: 14 }}>
+          <dl style={{ display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 10, columnGap: 18, margin: "10px 0 0", fontSize: 14 }}>
             {meta.map(([k, v]) => (
               <div key={k} style={{ display: "contents" }}>
-                <div className="strap" style={{ fontSize: 10 }}>{k.toUpperCase()}</div>
-                <div className="font-serif">{v}</div>
+                <dt className="strap" style={{ fontSize: 10 }}>{k.toUpperCase()}</dt>
+                <dd className="font-serif" style={{ margin: 0 }}>{v}</dd>
               </div>
             ))}
-          </div>
+          </dl>
 
           {g.ageRatings.length ? (
             <>
@@ -109,7 +129,7 @@ export default async function RecordPage({
                   <Link key={x.slug} href={`/record/${x.slug}`} className="indexcard" style={{ padding: 8 }}>
                     <div className={`cover ${x.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
                       {x.coverUrl ? (
-                        <img src={x.coverUrl} alt={`${x.title} cover`} />
+                        <img src={x.coverUrl} alt={`${x.title} cover`} width={264} height={374} loading="lazy" decoding="async" />
                       ) : null}
                     </div>
                     <div className="font-serif" style={{ fontWeight: 600, fontSize: 12, marginTop: 6, lineHeight: 1.2 }}>{x.title}</div>

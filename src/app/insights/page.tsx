@@ -4,6 +4,12 @@ import { getInsights } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Insights",
+  description:
+    "Charts and patterns drawn from the catalogue of delisted games: platforms, decades, genres, publishers, and ratings.",
+};
+
 const TILE_SPANS: Array<{ col: number; row: number; c: string }> = [
   { col: 6, row: 3, c: "t-accent" },
   { col: 6, row: 2, c: "" },
