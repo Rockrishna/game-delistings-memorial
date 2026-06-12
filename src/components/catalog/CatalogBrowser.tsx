@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useNsfw } from "@/components/layout/NsfwProvider";
 
 type Card = {
@@ -168,7 +168,6 @@ export default function CatalogBrowser({
   initial?: ApiResult | null;
   initialQuery?: string | null;
 }) {
-  const router = useRouter();
   const sp = useSearchParams();
   const { showNsfw } = useNsfw();
   // View toggle uses its own `view` param so it never collides with the
@@ -218,31 +217,38 @@ export default function CatalogBrowser({
       hydratedFor.current = "__used__";
       return;
     }
+    const controller = new AbortController();
     let cancelled = false;
     (async () => {
       await Promise.resolve();
       if (cancelled) return;
       setLoading(true);
       try {
-        const r = await fetch(`/api/catalog?${queryString}`);
+        const r = await fetch(`/api/catalog?${queryString}`, { signal: controller.signal });
         const d = (await r.json()) as ApiResult;
         if (!cancelled) setData(d);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") throw err;
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [queryString]);
 
+  // Shallow URL update: filter/sort/page changes only need a client fetch of
+  // /api/catalog, not a full server re-render of the page (which re-reads the
+  // whole table). Next syncs useSearchParams with history.pushState.
   const pushParams = useCallback(
     (mutate: (p: URLSearchParams) => void) => {
       const p = new URLSearchParams(sp.toString());
       mutate(p);
-      router.push(`/catalog?${p.toString()}`);
+      window.history.pushState(null, "", `/catalog?${p.toString()}`);
     },
-    [router, sp]
+    [sp]
   );
 
   function setMode(next: "simple" | "advanced") {
@@ -287,6 +293,7 @@ export default function CatalogBrowser({
 
   function goPage(n: number) {
     pushParams((p) => p.set("page", String(n)));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function setMatch(next: "all" | "any") {
@@ -304,14 +311,17 @@ export default function CatalogBrowser({
   const activeFilterCount = activeChips.length + (hasCover ? 1 : 0);
 
   const rail = (
-    <aside style={{ borderRight: "1.5px solid var(--ink)", padding: "16px 20px 24px" }}>
+    <aside className="catalog-rail" style={{ borderRight: "1.5px solid var(--ink)", padding: "16px 20px 24px" }}>
       <div
         style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}
       >
         <div className="strap accent">FILTERS · {activeFilterCount}</div>
-        {activeFilterCount ? (
-          <button className="chip" onClick={clearAll}>clear all</button>
-        ) : null}
+        <div style={{ display: "flex", gap: 6 }}>
+          {activeFilterCount ? (
+            <button className="chip" onClick={clearAll}>clear all</button>
+          ) : null}
+          <button className="chip rail-close" onClick={() => setRailOpen(false)}>✕ close</button>
+        </div>
       </div>
 
       <div style={{ marginBottom: 12 }}>
@@ -496,9 +506,14 @@ export default function CatalogBrowser({
         className="stack-mobile"
         style={{ display: "grid", gridTemplateColumns: railOpen ? "280px 1fr" : "1fr" }}
       >
-        {railOpen ? rail : null}
+        {railOpen ? (
+          <>
+            <div className="rail-backdrop" onClick={() => setRailOpen(false)} />
+            {rail}
+          </>
+        ) : null}
 
-        <section style={{ padding: "20px 24px" }}>
+        <section className={`results${loading ? " is-loading" : ""}`} style={{ padding: "20px 24px" }}>
           {mode === "simple" ? (
             <div className="cardgrid tight">
               {(data?.rows ?? []).map((g) => (
@@ -506,7 +521,7 @@ export default function CatalogBrowser({
                   <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>{g.callNumber}</div>
                   <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
                     {g.coverUrl ? (
-                      <img src={g.coverUrl} alt={`${g.title} cover`} loading="lazy" />
+                      <img src={g.coverUrl} alt={`${g.title} cover`} loading="lazy" decoding="async" />
                     ) : (
                       <div className="label" style={{ fontSize: 8 }}>{(g.platforms[0] ?? "—").slice(0, 6).toUpperCase()}</div>
                     )}

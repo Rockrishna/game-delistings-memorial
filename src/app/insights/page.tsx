@@ -124,7 +124,7 @@ export default async function InsightsPage() {
     <UShell total={i.total}>
       <div style={{ padding: "32px 36px 18px", textAlign: "center", borderBottom: "3px double var(--ink)" }}>
         <div className="strap" style={{ letterSpacing: "0.22em" }}>PATTERNS &amp; INSIGHTS</div>
-        <h2 className="font-display" style={{ fontWeight: 900, fontSize: 64, margin: "6px 0 4px", lineHeight: 0.95, letterSpacing: "-0.02em" }}>
+        <h2 className="font-display" style={{ fontWeight: 900, fontSize: "clamp(34px, 8vw, 64px)", margin: "6px 0 4px", lineHeight: 0.95, letterSpacing: "-0.02em" }}>
           The Shape of the Loss
         </h2>
         <p className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", maxWidth: 680, margin: "4px auto 0", fontSize: 15 }}>
@@ -133,7 +133,7 @@ export default async function InsightsPage() {
         </p>
       </div>
 
-      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", borderBottom: "1px solid var(--rule)" }}>
+      <div className="statgrid" style={{ borderBottom: "1px solid var(--rule)" }}>
         {headline.map(([k, v, sub, href], idx) => {
           const inner = (
             <>

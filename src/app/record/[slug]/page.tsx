@@ -36,7 +36,7 @@ export default async function RecordPage({
     <UShell total={total}>
       <div style={{ padding: "24px 28px 8px" }}>
         <div className="strap accent" style={{ fontSize: 11, letterSpacing: "0.16em" }}>CALL NO. {g.callNumber}</div>
-        <h2 className="font-serif" style={{ fontSize: 42, fontWeight: 600, margin: "6px 0 2px" }}>{g.title}</h2>
+        <h2 className="font-serif" style={{ fontSize: "clamp(26px, 6vw, 42px)", fontWeight: 600, margin: "6px 0 2px" }}>{g.title}</h2>
         <div className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", fontSize: 15 }}>
           {g.developer ?? "Unknown developer"} · {g.year ?? "—"} · published by {g.publisher ?? "Unknown"}
         </div>
@@ -44,7 +44,8 @@ export default async function RecordPage({
 
       <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "320px 1fr 260px", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: 24, borderRight: "1px solid var(--rule)" }}>
-          <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
+          {/* maxWidth keeps the cover postcard-sized when columns stack on phones */}
+          <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4", maxWidth: 300, marginInline: "auto" }}>
             {g.coverUrl ? (
               <img src={g.coverUrl} alt={`${g.title} cover`} />
             ) : null}

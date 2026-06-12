@@ -30,7 +30,7 @@ export default async function OverviewPage() {
             digital titles removed from major storefronts and indexed in this
             catalogue. Each carries a permanent call number and a record card.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18, marginTop: 30 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 18, marginTop: 30 }}>
             {tiles.map(([k, v, extra]) => (
               <div key={k} style={{ borderTop: "1px solid var(--ink)", paddingTop: 8 }}>
                 <div className="strap" style={{ fontSize: 9 }}>{k}</div>
@@ -43,7 +43,7 @@ export default async function OverviewPage() {
 
         <div style={{ padding: "24px 28px" }}>
           <div className="strap">SHELF I · BY STOREFRONT</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginTop: 10 }}>
             {o.byPlatform.map((p, i) => (
               <Link
                 key={p.name}

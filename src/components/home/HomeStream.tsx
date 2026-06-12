@@ -86,7 +86,7 @@ function HomeStreamInner({ showNsfw }: { showNsfw: boolean }) {
             </div>
             <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
               {g.coverUrl ? (
-                <img src={g.coverUrl} alt={`${g.title} cover`} loading="lazy" />
+                <img src={g.coverUrl} alt={`${g.title} cover`} loading="lazy" decoding="async" />
               ) : (
                 <div className="label" style={{ fontSize: 8 }}>
                   {(g.platforms[0] ?? "—").slice(0, 6).toUpperCase()}
