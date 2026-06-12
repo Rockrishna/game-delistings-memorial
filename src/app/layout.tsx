@@ -75,12 +75,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f3eee2" },
-    { media: "(prefers-color-scheme: dark)", color: "#131417" },
+    { media: "(prefers-color-scheme: dark)", color: "#15161a" },
   ],
 };
 
-// Runs before first paint so a stored dark preference never flashes light.
-const THEME_INIT = `try{if(localStorage.getItem("delisted-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}`;
+// Runs before first paint so the resolved theme never flashes. An explicit
+// stored choice wins; otherwise we follow the OS/browser preference.
+const THEME_INIT = `try{var s=localStorage.getItem("delisted-theme");var d=s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches;if(d)document.documentElement.dataset.theme="dark"}catch(e){}`;
 
 export default function RootLayout({
   children,

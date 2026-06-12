@@ -13,18 +13,44 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "delisted-theme";
 
-function readStoredTheme(): Theme {
+// Resolution order (must match the pre-paint script in layout.tsx):
+// explicit stored choice → OS/browser preference → light.
+function resolveTheme(): Theme {
   if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-  return stored === "dark" ? "dark" : "light";
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {
+    /* ignore storage errors */
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function hasStoredChoice(): boolean {
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored === "dark" || stored === "light";
+  } catch {
+    return false;
+  }
 }
 
 export default function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(readStoredTheme);
+  const [theme, setTheme] = useState<Theme>(resolveTheme);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // Until the visitor picks a theme explicitly, follow live OS changes.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    function onChange(e: MediaQueryListEvent) {
+      if (!hasStoredChoice()) setTheme(e.matches ? "dark" : "light");
+    }
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const toggle = useCallback(() => {
     setTheme((current) => {

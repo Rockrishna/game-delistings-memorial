@@ -15,6 +15,10 @@
   --rule-soft: #b8b1a0;
   --accent: #8a2a1f;
   --accent-soft: #b56152;
+  /* Secondary text sitting ON an ink-filled surface (treemap tiles). */
+  --on-ink-sub: rgba(255, 255, 255, 0.8);
+  /* Hatching over empty cover placeholders. */
+  --hatch: rgba(0, 0, 0, 0.05);
 
   --serif: var(--font-crimson), "EB Garamond", "Source Serif Pro", Georgia, serif;
   --mono: var(--font-mono), "Cutive Mono", "Courier New", monospace;
@@ -25,18 +29,28 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --paper: #131417;
-  --paper-2: #1c1d22;
-  --paper-3: #25262c;
-  --ink: #e9e3d2;
-  --ink-2: #b8b1a0;
-  --ink-3: #847e72;
-  --ink-4: #555049;
-  --rule: #847e72;
-  --rule-soft: #3a3934;
-  --accent: #c97765;
-  --accent-soft: #8a4d40;
+  --paper: #15161a;
+  --paper-2: #1e1f25;
+  --paper-3: #292a31;
+  --ink: #efe9da;
+  /* Secondary/muted tones run brighter than a naive inversion: this design
+     sets them at 8–13px, where WCAG wants ≥ 4.5:1 (these all clear ~6:1). */
+  --ink-2: #cdc6b5;
+  --ink-3: #a39d91;
+  --ink-4: #757066;
+  --rule: #948e82;
+  --rule-soft: #45443e;
+  --accent: #e08a74;
+  --accent-soft: #a05c4c;
+  /* Ink-filled surfaces are light cream in dark mode, so their secondary
+     text must be dark, and placeholder hatching must be light. */
+  --on-ink-sub: rgba(21, 22, 26, 0.65);
+  --hatch: rgba(255, 255, 255, 0.06);
 }
+
+/* Faint heatmap cells fade into the page on a dark background; raise the
+   floor so low-count cells stay legible. */
+[data-theme="dark"] .heat-grid .heat-cell { opacity: calc(0.32 + var(--v) * 0.68); }
 
 * { box-sizing: border-box; }
 
@@ -324,7 +338,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cover::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: repeating-linear-gradient(45deg, transparent 0 14px, rgba(0,0,0,0.05) 14px 15px);
+  background: repeating-linear-gradient(45deg, transparent 0 14px, var(--hatch) 14px 15px);
 }
 .cover.has-img::after { display: none; }
 .cover .label {
@@ -411,7 +425,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .treemap .tile { background: var(--ink); color: var(--paper); padding: 11px; display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; transition: filter 0.15s ease, transform 0.15s ease; }
 .treemap .tile:hover { filter: brightness(1.12); transform: scale(0.99); }
 .treemap .tile .tname { font-family: var(--serif); font-size: 17px; font-weight: 600; line-height: 1.05; }
-.treemap .tile .tcount { font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,0.8); }
+.treemap .tile .tcount { font-family: var(--mono); font-size: 12px; color: var(--on-ink-sub); }
 .treemap .tile.t-accent { background: var(--accent); }
 .treemap .tile.t-mid { background: var(--ink-2); }
 .treemap .tile.t-soft { background: var(--paper-3); color: var(--ink); }
