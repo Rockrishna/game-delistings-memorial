@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useNsfw } from "@/components/layout/NsfwProvider";
+import NsfwToggle from "@/components/shell/NsfwToggle";
 
 type Card = {
   slug: string;
@@ -331,6 +332,14 @@ export default function CatalogBrowser({
         </div>
       </div>
 
+      <div style={{ marginBottom: 14 }}>
+        <div className="strap" style={{ marginBottom: 6 }}>VIEW</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <span className="font-serif" style={{ fontSize: 13, color: "var(--ink-2)" }}>Mature content</span>
+          <NsfwToggle />
+        </div>
+      </div>
+
       <div style={{ marginBottom: 12 }}>
         <div className="strap" style={{ marginBottom: 6 }}>COMBINE FILTERS</div>
         <div style={{ display: "flex", border: "1px solid var(--ink)" }}>
@@ -490,11 +499,13 @@ export default function CatalogBrowser({
         style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 28px", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)", background: "var(--paper-2)", flexWrap: "wrap" }}
       >
         <button
-          className="chip"
+          className="chip catalog-filter-btn"
           onClick={() => setRailOpen((v) => !v)}
           aria-expanded={railOpen}
+          aria-haspopup="dialog"
         >
-          {railOpen ? "▾ hide filters" : "▸ filters"}
+          <span aria-hidden="true">▤</span>
+          {railOpen ? " Hide filters" : " Filters"}
           {activeFilterCount ? ` · ${activeFilterCount}` : ""}
         </button>
         <span className="font-serif" aria-live="polite" style={{ flex: 1, minWidth: 120 }}>

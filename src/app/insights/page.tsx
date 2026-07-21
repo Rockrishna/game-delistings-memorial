@@ -130,10 +130,10 @@ export default async function InsightsPage() {
       <div style={{ padding: "32px 36px 18px", textAlign: "center", borderBottom: "3px double var(--ink)" }}>
         <div className="strap" style={{ letterSpacing: "0.22em" }}>PATTERNS &amp; INSIGHTS</div>
         <h2 className="font-display" style={{ fontWeight: 900, fontSize: "clamp(34px, 8vw, 64px)", margin: "6px 0 4px", lineHeight: 0.95, letterSpacing: "-0.02em" }}>
-          The Shape of the Loss
+          The Catalogue in Numbers
         </h2>
         <p className="font-serif" style={{ color: "var(--ink-2)", maxWidth: 680, margin: "4px auto 0", fontSize: 15 }}>
-          Thirteen displays of what the catalogue has lost. Every figure links
+          Charts and rankings across the whole catalogue. Every figure links
           into the catalog, pre-filtered to that slice.
         </p>
       </div>

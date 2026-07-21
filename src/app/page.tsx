@@ -8,27 +8,34 @@ export const dynamic = "force-dynamic";
 export default async function OverviewPage() {
   const o = await getOverview();
 
+  const yearSpan =
+    o.yearMin != null && o.yearMax != null ? o.yearMax - o.yearMin : null;
   const tiles: Array<[string, string, string]> = [
-    ["DRAWERS", String(o.drawers), "one per storefront"],
-    ["DECADES SPANNED", String(o.decadesCovered), "earliest → latest"],
+    ["DEVELOPERS", o.developers.toLocaleString(), "distinct studios"],
     ["PUBLISHERS", o.publishers.toLocaleString(), "distinct imprints"],
+    [
+      "YEARS OF RELEASES",
+      yearSpan != null ? String(yearSpan) : "—",
+      o.yearMin != null && o.yearMax != null ? `${o.yearMin}–${o.yearMax}` : "—",
+    ],
   ];
 
   const begin = [
     { t: "Browse the catalog", d: `${o.total.toLocaleString()} records · filter by anything`, a: "open the catalog →", href: "/catalog" },
-    { t: "See the shape of the loss", d: "Heatmaps, genres, publishers, ratings", a: "insights →", href: "/insights" },
-    { t: "Search for a title", d: "By name, publisher, or developer", a: "⌕ search →", href: "/catalog" },
+    { t: "Explore the insights", d: "Charts, heatmaps, and patterns", a: "insights →", href: "/insights" },
+    { t: "Search for a title", d: "By name, publisher, developer, or call number", a: "⌕ search →", href: "/catalog" },
   ];
 
   return (
     <UShell total={o.total}>
       <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", borderBottom: "1px solid var(--rule)" }}>
         <div style={{ padding: "32px 36px", borderRight: "1px solid var(--rule)" }}>
-          <div className="strap" style={{ color: "var(--accent)" }}>THE COLLECTION · AS OF TODAY</div>
+          <div className="strap" style={{ color: "var(--accent)" }}>THE COLLECTION</div>
           <div className="bignum" style={{ margin: "10px 0 4px" }}>{o.total.toLocaleString()}</div>
           <p className="font-serif" style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 520, margin: "6px 0 0" }}>
-            digital titles removed from major storefronts and indexed in this
-            catalogue. Each carries a permanent call number and a record card.
+            games that are no longer sold on major digital storefronts,
+            catalogued from public game databases. Each has its own record and
+            a filing number.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 18, marginTop: 30 }}>
             {tiles.map(([k, v, extra]) => (
@@ -78,7 +85,7 @@ export default async function OverviewPage() {
 
       <div style={{ padding: "8px 36px 48px", borderTop: "1px solid var(--rule)" }}>
         <div className="strap" style={{ margin: "20px 0 14px" }}>
-          FROM THE STACKS · BROWSE WITHOUT END
+          MORE FROM THE CATALOGUE
         </div>
         <HomeStream />
       </div>

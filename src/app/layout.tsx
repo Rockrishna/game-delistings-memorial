@@ -38,13 +38,13 @@ const PROD_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
 export const metadata: Metadata = {
   metadataBase: new URL(PROD_URL),
   title: {
-    default: `${SITE_NAME} — a database of withdrawn titles`,
+    default: `${SITE_NAME} — a catalogue of games no longer sold`,
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   openGraph: {
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — a database of withdrawn titles`,
+    title: `${SITE_NAME} — a catalogue of games no longer sold`,
     description: SITE_DESCRIPTION,
     type: "website",
   },

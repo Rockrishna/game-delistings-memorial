@@ -153,25 +153,22 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
    sideways instead of scrolling inside .scroll-x. */
 .app { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); }
 
-/* Single header: masthead + a sticky horizontal navrow. No left rail. */
+/* Single header: masthead + a sticky horizontal navrow. No left rail.
+   Compact: a linked title + one concise count line (no redundant eyebrow). */
 .masthead {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 18px 28px; border-bottom: 2px solid var(--ink); gap: 16px;
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 13px 28px; border-bottom: 2px solid var(--ink); gap: 16px;
 }
+.masthead-home { display: inline-block; }
+.masthead-home:hover h1 { color: var(--accent); }
 .masthead h1 {
   font-family: var(--display); font-weight: 700;
-  font-size: 28px; margin: 4px 0 0; letter-spacing: 0.01em;
-}
-.masthead .deweystrip {
-  font-family: var(--typewriter); font-size: 11.5px; letter-spacing: 0.14em;
-  color: var(--ink-3);
+  font-size: 26px; margin: 0; letter-spacing: 0.01em; line-height: 1.05;
+  transition: color 0.15s ease;
 }
 .masthead .masthead-sub {
-  font-family: var(--typewriter); font-size: 11.5px; letter-spacing: 0.08em;
-  color: var(--ink-3); text-transform: uppercase; margin-top: 6px;
-}
-.masthead .masthead-actions {
-  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+  font-family: var(--typewriter); font-size: 12px; letter-spacing: 0.06em;
+  color: var(--ink-3); text-transform: uppercase; margin-top: 3px;
 }
 
 .navwrap {
@@ -358,15 +355,21 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
     overscroll-behavior: contain; animation: sheetUp 0.24s ease;
   }
   .nav-menu-link {
-    display: block; font-family: var(--serif); font-size: 18px;
-    color: var(--ink-2); padding: 15px 8px;
+    display: flex; flex-direction: column; gap: 3px; padding: 13px 8px;
     border-bottom: 1px solid var(--rule-soft);
   }
-  .nav-menu-link.on { color: var(--ink); font-weight: 700; }
-  .nav-menu-link.on::before {
+  .nav-menu-link-label {
+    font-family: var(--serif); font-size: 18px; color: var(--ink-2);
+  }
+  .nav-menu-link.on .nav-menu-link-label { color: var(--ink); font-weight: 700; }
+  .nav-menu-link.on .nav-menu-link-label::before {
     content: ""; display: inline-block; width: 6px; height: 6px;
     margin-right: 10px; vertical-align: middle;
     background: var(--accent); border-radius: 999px;
+  }
+  .nav-menu-link-desc {
+    font-family: var(--typewriter); font-size: 12px; letter-spacing: 0.04em;
+    color: var(--ink-3);
   }
   .nav-menu-settings { margin-top: 16px; }
   .nav-menu-settings .strap { margin-bottom: 8px; }
@@ -375,6 +378,15 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
     gap: 12px; padding: 9px 8px;
   }
   .nav-menu-setting-label { font-family: var(--serif); font-size: 15px; color: var(--ink-2); }
+
+  /* On phones the filter rail opens as a bottom-sheet tray, so its trigger
+     reads as a prominent primary button (solid, full-width) rather than a
+     quiet chip that gives no hint an overlay is coming. */
+  .catalog-filter-btn {
+    flex: 1 1 100%; justify-content: center;
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
+    font-weight: 600; letter-spacing: 0.03em;
+  }
 
   .navsearch { padding: 10px 14px; }
   .navsearch input { font-size: 16px; }

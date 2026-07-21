@@ -8,10 +8,10 @@ import ThemeToggle from "@/components/shell/ThemeToggle";
 import NsfwToggle from "@/components/shell/NsfwToggle";
 
 const NAV = [
-  { key: "overview", label: "Overview", href: "/" },
-  { key: "catalog", label: "The Catalog", href: "/catalog" },
-  { key: "insights", label: "Insights", href: "/insights" },
-  { key: "about", label: "About the data", href: "/about-igdb" },
+  { key: "overview", label: "Overview", href: "/", desc: "The collection at a glance" },
+  { key: "catalog", label: "The Catalog", href: "/catalog", desc: "Browse & filter every record" },
+  { key: "insights", label: "Insights", href: "/insights", desc: "Charts & patterns in the data" },
+  { key: "about", label: "About the data", href: "/about-igdb", desc: "Sources, method & disclaimer" },
 ];
 
 function surfaceOf(pathname: string): string {
@@ -58,17 +58,17 @@ export default function UShell({
         Skip to main content
       </a>
       <header className="masthead">
-        <div>
-          <div className="deweystrip">
-            CATALOGUE OF DELISTED VIDEO GAMES · vol. iv · {total.toLocaleString()} records
-          </div>
+        {/* The whole title block returns to the overview — the primary "home"
+            affordance on mobile, where there's no persistent Overview link. */}
+        <Link href="/" className="masthead-home" aria-label="Delisted Games Tracker — back to the overview">
           <h1>Delisted Games Tracker</h1>
-          <div className="masthead-sub">a database of withdrawn titles</div>
-        </div>
+          <div className="masthead-sub">{total.toLocaleString()} games no longer sold</div>
+        </Link>
       </header>
 
       <div className="navwrap">
-        {/* Desktop: full horizontal nav with toggles pinned right. */}
+        {/* Desktop: full horizontal nav. Only the theme toggle lives here now;
+            the mature-content control moved into the Catalog filter rail. */}
         <nav className="navrow" aria-label="Primary">
           {NAV.map((n) => (
             <Link
@@ -81,7 +81,6 @@ export default function UShell({
             </Link>
           ))}
           <div className="navrow-actions">
-            <NsfwToggle />
             <ThemeToggle />
           </div>
         </nav>
@@ -122,7 +121,8 @@ export default function UShell({
                     href={n.href}
                     onClick={() => setMenuOpen(false)}
                   >
-                    {n.label}
+                    <span className="nav-menu-link-label">{n.label}</span>
+                    <span className="nav-menu-link-desc">{n.desc}</span>
                   </Link>
                 ))}
               </nav>

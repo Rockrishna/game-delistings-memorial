@@ -133,10 +133,18 @@ export async function getOverview() {
   const byFamily = new Map<string, number>();
   const decades = new Set<string>();
   const publishers = new Set<string>();
+  const developers = new Set<string>();
+  let yearMin: number | null = null;
+  let yearMax: number | null = null;
 
   for (const g of games) {
     if (g.decade) decades.add(g.decade);
     if (g.publisher) publishers.add(g.publisher);
+    if (g.developer) developers.add(g.developer);
+    if (g.year != null) {
+      yearMin = yearMin == null ? g.year : Math.min(yearMin, g.year);
+      yearMax = yearMax == null ? g.year : Math.max(yearMax, g.year);
+    }
     for (const f of g.platforms) byFamily.set(f, (byFamily.get(f) ?? 0) + 1);
   }
 
@@ -155,6 +163,9 @@ export async function getOverview() {
     drawers: byPlatform.length,
     decadesCovered: decades.size,
     publishers: publishers.size,
+    developers: developers.size,
+    yearMin,
+    yearMax,
   };
 }
 
@@ -383,13 +394,13 @@ export async function getInsights() {
 
   const enc = encodeURIComponent;
   const attributePatterns = [
-    topGenre && { count: topGenre[1], title: `${topGenre[0]} dominated`, blurb: `The genre with the most withdrawn titles.`, href: `/catalog?genre=${enc(topGenre[0])}` },
-    topPlatform && { count: topPlatform[1], title: `${topPlatform[0]} casualties`, blurb: `More games left this storefront than any other.`, href: `/catalog?platform=${enc(topPlatform[0])}` },
-    topDecade && { count: topDecade[1], title: `The ${topDecade[0]} were hit hardest`, blurb: `The release decade that lost the most titles.`, href: `/catalog?decade=${enc(topDecade[0])}` },
-    topPublisher && { count: topPublisher[1], title: `${topPublisher[0]} lost the most`, blurb: `The publisher with the largest delisted back-catalogue.`, href: `/catalog?publisher=${enc(topPublisher[0])}` },
-    { count: acclaimed, title: `Acclaimed yet pulled`, blurb: `Delisted games that still scored 80+ on IGDB.`, href: `/catalog?rating=${enc("≥ 90")}&rating=${enc("80–89")}` },
-    earliestDecade && { count: earliestDecade[1], title: `Legacy losses · ${earliestDecade[0]}`, blurb: `The oldest cohort of withdrawn titles still on record.`, href: `/catalog?decade=${enc(earliestDecade[0])}` },
-    { count: lowRated, title: `Quietly forgotten`, blurb: `Lower-rated titles (under 60) that slipped away.`, href: `/catalog?rating=${enc("< 60")}` },
+    topGenre && { count: topGenre[1], title: `Top genre · ${topGenre[0]}`, blurb: `More delisted titles are ${topGenre[0]} than any other genre.`, href: `/catalog?genre=${enc(topGenre[0])}` },
+    topPlatform && { count: topPlatform[1], title: `Top storefront · ${topPlatform[0]}`, blurb: `More delisted games came from ${topPlatform[0]} than any other storefront.`, href: `/catalog?platform=${enc(topPlatform[0])}` },
+    topDecade && { count: topDecade[1], title: `Top decade · ${topDecade[0]}`, blurb: `The release decade with the most delisted titles.`, href: `/catalog?decade=${enc(topDecade[0])}` },
+    topPublisher && { count: topPublisher[1], title: `Top publisher · ${topPublisher[0]}`, blurb: `The publisher with the largest delisted back-catalogue.`, href: `/catalog?publisher=${enc(topPublisher[0])}` },
+    { count: acclaimed, title: `Highly rated · 80+`, blurb: `Delisted games that still scored 80 or more on IGDB.`, href: `/catalog?rating=${enc("≥ 90")}&rating=${enc("80–89")}` },
+    earliestDecade && { count: earliestDecade[1], title: `Oldest cohort · ${earliestDecade[0]}`, blurb: `The earliest release decade still on record.`, href: `/catalog?decade=${enc(earliestDecade[0])}` },
+    { count: lowRated, title: `Low rated · under 60`, blurb: `Delisted titles that scored under 60 on IGDB.`, href: `/catalog?rating=${enc("< 60")}` },
   ].filter(Boolean) as Array<{ count: number; title: string; blurb: string; href: string }>;
 
   const histBuckets = [
