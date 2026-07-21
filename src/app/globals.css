@@ -20,31 +20,42 @@
   /* Hatching over empty cover placeholders. */
   --hatch: rgba(0, 0, 0, 0.05);
 
-  --serif: var(--font-crimson), "EB Garamond", "Source Serif Pro", Georgia, serif;
-  --mono: var(--font-mono), "Cutive Mono", "Courier New", monospace;
-  --typewriter: var(--font-typewriter), "Special Elite", "Cutive Mono", monospace;
-  --hand: var(--font-hand), "Architects Daughter", "Caveat", cursive;
-  --display: var(--font-playfair), "Playfair Display", "Crimson Pro", Georgia, serif;
+  /* One hyperlegible sans carries body, labels, and tabular text. The old
+     role names (serif/mono/typewriter/hand) are kept so every existing class
+     keeps working — they now all resolve to Atkinson Hyperlegible. Numeric
+     alignment that the monospace used to give is restored with
+     `font-variant-numeric: tabular-nums` on the relevant classes below. */
+  --sans: var(--font-atkinson), "Atkinson Hyperlegible", ui-sans-serif,
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: var(--sans);
+  --mono: var(--sans);
+  --typewriter: var(--sans);
+  --hand: var(--sans);
+  /* Refined display serif is reserved for the largest headings only. */
+  --display: var(--font-playfair), "Playfair Display", Georgia, serif;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --paper: #15161a;
-  --paper-2: #1e1f25;
-  --paper-3: #292a31;
-  --ink: #efe9da;
-  /* Secondary/muted tones run brighter than a naive inversion: this design
-     sets them at 8–13px, where WCAG wants ≥ 4.5:1 (these all clear ~6:1). */
-  --ink-2: #cdc6b5;
-  --ink-3: #a39d91;
-  --ink-4: #757066;
-  --rule: #948e82;
-  --rule-soft: #45443e;
-  --accent: #e08a74;
-  --accent-soft: #a05c4c;
+  /* Backgrounds lifted off near-black and the primary ink pulled down from a
+     stark cream: pure-white-on-black caused halation and eye strain. Primary
+     text now sits at ~10:1 rather than ~15:1 — comfortably above WCAG AAA
+     (7:1) but far gentler to read. */
+  --paper: #1a1b20;
+  --paper-2: #232429;
+  --paper-3: #2e2f36;
+  --ink: #d8d3c7;
+  /* Secondary/muted tones still clear ≥ 4.5:1 for the 8–13px labels. */
+  --ink-2: #b6b0a3;
+  --ink-3: #948e82;
+  --ink-4: #6f6a60;
+  --rule: #837e74;
+  --rule-soft: #3c3b36;
+  --accent: #dd8f78;
+  --accent-soft: #9d5c4c;
   /* Ink-filled surfaces are light cream in dark mode, so their secondary
      text must be dark, and placeholder hatching must be light. */
-  --on-ink-sub: rgba(21, 22, 26, 0.65);
+  --on-ink-sub: rgba(26, 27, 32, 0.68);
   --hatch: rgba(255, 255, 255, 0.06);
 }
 
@@ -61,8 +72,18 @@ html, body {
   color: var(--ink);
   font-family: var(--serif);
   font-size: 16px;
-  line-height: 1.5;
+  /* Generous leading + slight word spacing aid dyslexic reading without
+     loosening the layout noticeably. */
+  line-height: 1.6;
+  word-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Keep digits column-aligned now that the monospace is gone: any label,
+   ledger, chart, or call-number that shows counts uses tabular figures. */
+.font-mono, .strap, .deweycall, .deweystrip, .ledger, .bar-row, .heat-grid,
+.treemap, .hist, .bignum, .drawer, .chip {
+  font-variant-numeric: tabular-nums;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -118,8 +139,8 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 
 .strap {
   font-family: var(--typewriter);
-  font-size: 11.5px;
-  letter-spacing: 0.16em;
+  font-size: 12px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-3);
 }
@@ -138,7 +159,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   padding: 18px 28px; border-bottom: 2px solid var(--ink); gap: 16px;
 }
 .masthead h1 {
-  font-family: var(--serif); font-style: italic; font-weight: 600;
+  font-family: var(--display); font-weight: 700;
   font-size: 28px; margin: 4px 0 0; letter-spacing: 0.01em;
 }
 .masthead .deweystrip {
@@ -181,6 +202,12 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   margin-left: auto; display: flex; align-items: center; gap: 8px;
   padding-left: 16px; flex: 0 0 auto;
 }
+
+/* Mobile navbar + slide-down menu. Hidden on desktop; the media query below
+   flips which one shows. The menu holds the nav links and tucks the NSFW +
+   theme toggles into a low-key Settings group so NSFW is no longer prominent. */
+.navbar-mobile { display: none; }
+.nav-menu, .nav-menu-backdrop { display: none; }
 
 /* Search lives as a slim bar attached to the nav. */
 .navsearch {
@@ -301,8 +328,54 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   .masthead { flex-direction: column; padding: 16px 18px; gap: 12px; }
   .masthead h1 { font-size: 22px; }
   .masthead .masthead-actions { align-self: flex-start; }
-  .navrow { padding: 0 14px; }
-  .navrow a { padding: 14px 14px; font-size: 14px; }
+
+  /* Swap the horizontal nav for the menu-button bar. */
+  .navrow { display: none; }
+  .navbar-mobile {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 7px 14px;
+  }
+  .navbar-mobile-current {
+    font-family: var(--typewriter); text-transform: uppercase;
+    letter-spacing: 0.1em; font-size: 12px; font-weight: 700; color: var(--ink);
+  }
+  .nav-menu-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 44px; padding: 8px 16px; cursor: pointer;
+    font-family: var(--serif); font-size: 15px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--ink);
+  }
+  .nav-menu-glyph { font-size: 15px; line-height: 1; }
+
+  .nav-menu-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 55;
+    background: rgba(10, 9, 6, 0.5); animation: fadeIn 0.2s ease;
+  }
+  .nav-menu {
+    display: block; position: absolute; left: 0; right: 0; top: 100%; z-index: 60;
+    background: var(--paper); border-bottom: 2px solid var(--ink);
+    padding: 8px 14px 18px; max-height: 80vh; overflow-y: auto;
+    overscroll-behavior: contain; animation: sheetUp 0.24s ease;
+  }
+  .nav-menu-link {
+    display: block; font-family: var(--serif); font-size: 18px;
+    color: var(--ink-2); padding: 15px 8px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .nav-menu-link.on { color: var(--ink); font-weight: 700; }
+  .nav-menu-link.on::before {
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    margin-right: 10px; vertical-align: middle;
+    background: var(--accent); border-radius: 999px;
+  }
+  .nav-menu-settings { margin-top: 16px; }
+  .nav-menu-settings .strap { margin-bottom: 8px; }
+  .nav-menu-setting {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 9px 8px;
+  }
+  .nav-menu-setting-label { font-family: var(--serif); font-size: 15px; color: var(--ink-2); }
+
   .navsearch { padding: 10px 14px; }
   .navsearch input { font-size: 16px; }
   .navsearch-pop { left: 8px; right: 8px; }

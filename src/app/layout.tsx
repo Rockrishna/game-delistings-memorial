@@ -1,51 +1,30 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import {
-  Playfair_Display,
-  Crimson_Pro,
-  Special_Elite,
-  Cutive_Mono,
-  Architects_Daughter,
-} from "next/font/google";
+import { Playfair_Display, Atkinson_Hyperlegible } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import NsfwProvider from "@/components/layout/NsfwProvider";
 
+// Refined display serif — kept only for the biggest "catalogue" moments
+// (masthead title, the big collection numeral), where character matters and
+// the type is large enough not to hinder reading.
 const playfair = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "700", "900"],
-  style: ["normal", "italic"],
   variable: "--font-playfair",
   display: "swap",
 });
 
-const crimson = Crimson_Pro({
+// Atkinson Hyperlegible (Braille Institute) drives all body copy, labels, and
+// tabular text. Its exaggerated letter differentiation (I / l / 1, O / 0, b / d)
+// is the accessibility/dyslexia win; italics are kept available but used
+// sparingly. One family for everything keeps the card-catalogue system coherent.
+const atkinson = Atkinson_Hyperlegible({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
   style: ["normal", "italic"],
-  variable: "--font-crimson",
-  display: "swap",
-});
-
-const typewriter = Special_Elite({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-typewriter",
-  display: "swap",
-});
-
-const mono = Cutive_Mono({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-mono",
-  display: "swap",
-});
-
-const hand = Architects_Daughter({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-hand",
+  variable: "--font-atkinson",
   display: "swap",
 });
 
@@ -75,7 +54,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f3eee2" },
-    { media: "(prefers-color-scheme: dark)", color: "#15161a" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1b20" },
   ],
 };
 
@@ -89,7 +68,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${crimson.variable} ${typewriter.variable} ${mono.variable} ${hand.variable}`}
+      className={`${playfair.variable} ${atkinson.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen antialiased">
