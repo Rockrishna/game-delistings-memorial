@@ -306,9 +306,8 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   .navsearch { padding: 10px 14px; }
   .navsearch input { font-size: 16px; }
   .navsearch-pop { left: 8px; right: 8px; }
-  /* Bigger tap targets and tighter charts on phones. Toggles/chips get a
-     44px-tall touch area (WCAG 2.5.5) so they're easy to press by thumb. */
-  .chip { min-height: 44px; padding: 10px 15px; font-size: 12.5px; }
+  /* Tighter charts on phones. (Chip tap-target sizing lives in a media
+     block at the end of the file — see note there.) */
   .navrow-actions { gap: 10px; padding-left: 12px; }
   .cardgrid.tight { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
   .bar-row { grid-template-columns: 92px 1fr 44px; gap: 8px; font-size: 12px; }
@@ -435,3 +434,12 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .treemap .tile.t-mid { background: var(--ink-2); }
 .treemap .tile.t-soft { background: var(--paper-3); color: var(--ink); }
 .treemap .tile.t-soft .tcount { color: var(--ink-3); }
+
+/* Phone tap targets for chips/toggles (NSFW, theme). Authored here, after the
+   .chip primitive, so these win the cascade — the responsive block earlier in
+   the file precedes .chip's definition, so overrides placed there lose to it
+   (which is why only the unique min-height took effect before). WCAG 2.5.5:
+   a >=44px-tall, comfortably padded touch area. */
+@media (max-width: 720px) {
+  .chip { min-height: 44px; padding: 10px 15px; font-size: 12.5px; }
+}
