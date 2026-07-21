@@ -52,7 +52,6 @@ function Empty({ label }: { label: string }) {
     <div
       className="font-serif muted"
       style={{
-        fontStyle: "italic",
         fontSize: 13,
         padding: "18px 0",
         border: "1px dashed var(--rule)",
@@ -133,7 +132,7 @@ export default async function InsightsPage() {
         <h2 className="font-display" style={{ fontWeight: 900, fontSize: "clamp(34px, 8vw, 64px)", margin: "6px 0 4px", lineHeight: 0.95, letterSpacing: "-0.02em" }}>
           The Shape of the Loss
         </h2>
-        <p className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", maxWidth: 680, margin: "4px auto 0", fontSize: 15 }}>
+        <p className="font-serif" style={{ color: "var(--ink-2)", maxWidth: 680, margin: "4px auto 0", fontSize: 15 }}>
           Thirteen displays of what the catalogue has lost. Every figure links
           into the catalog, pre-filtered to that slice.
         </p>
@@ -145,7 +144,7 @@ export default async function InsightsPage() {
             <>
               <div className="strap" style={{ fontSize: 9 }}>{k}</div>
               <div className="font-display" style={{ fontWeight: 900, fontSize: 42, lineHeight: 1, margin: "6px 0", letterSpacing: "-0.01em" }}>{v}</div>
-              <div className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", fontSize: 13 }}>{sub}</div>
+              <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13 }}>{sub}</div>
             </>
           );
           return (
@@ -211,7 +210,7 @@ export default async function InsightsPage() {
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap">DISPLAY III · RATING DISTRIBUTION</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 6px" }}>Were they good?</h3>
-          <p className="font-serif muted" style={{ fontStyle: "italic", margin: "0 0 16px", fontSize: 14 }}>
+          <p className="font-serif muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
             User score, bucketed, across the {i.ratingHist.reduce((s, b) => s + b.count, 0).toLocaleString()} rated titles.
           </p>
           <div className="hist">
@@ -239,7 +238,7 @@ export default async function InsightsPage() {
         <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 4px" }}>
           What the metadata tells us
         </h3>
-        <p className="font-serif muted" style={{ fontStyle: "italic", margin: "0 0 18px", fontSize: 13 }}>
+        <p className="font-serif muted" style={{ margin: "0 0 18px", fontSize: 13 }}>
           Recurring shapes drawn from genre, platform, decade, publisher and
           rating. Open any one in the catalog.
         </p>
@@ -250,7 +249,7 @@ export default async function InsightsPage() {
                 {p.count.toLocaleString()}
               </div>
               <div className="font-serif" style={{ fontWeight: 600, fontSize: 15, marginTop: 8 }}>{p.title}</div>
-              <div className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{p.blurb}</div>
+              <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{p.blurb}</div>
               <div className="accent font-typewriter" style={{ fontSize: 10, letterSpacing: "0.1em", marginTop: 12 }}>open in catalog →</div>
             </Link>
           ))}
@@ -372,7 +371,7 @@ export default async function InsightsPage() {
                 </div>
                 <div className="font-display accent" style={{ fontSize: 22, fontWeight: 900 }}>{g.rating}</div>
               </div>
-              <div className="font-serif muted" style={{ fontStyle: "italic", fontSize: 11, marginTop: 4 }}>
+              <div className="font-serif muted" style={{ fontSize: 11, marginTop: 4 }}>
                 {g.year ?? "—"} · {g.publisher ?? "Unknown"}
               </div>
             </Link>

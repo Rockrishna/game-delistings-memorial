@@ -26,7 +26,7 @@ export default async function OverviewPage() {
         <div style={{ padding: "32px 36px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap" style={{ color: "var(--accent)" }}>THE COLLECTION · AS OF TODAY</div>
           <div className="bignum" style={{ margin: "10px 0 4px" }}>{o.total.toLocaleString()}</div>
-          <p className="font-serif" style={{ fontSize: 18, color: "var(--ink-2)", fontStyle: "italic", maxWidth: 520, margin: "6px 0 0" }}>
+          <p className="font-serif" style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 520, margin: "6px 0 0" }}>
             digital titles removed from major storefronts and indexed in this
             catalogue. Each carries a permanent call number and a record card.
           </p>
@@ -35,7 +35,7 @@ export default async function OverviewPage() {
               <div key={k} style={{ borderTop: "1px solid var(--ink)", paddingTop: 8 }}>
                 <div className="strap" style={{ fontSize: 9 }}>{k}</div>
                 <div className="font-serif" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1, marginTop: 4 }}>{v}</div>
-                <div className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-3)", fontSize: 12, marginTop: 4 }}>{extra}</div>
+                <div className="font-serif" style={{ color: "var(--ink-3)", fontSize: 12, marginTop: 4 }}>{extra}</div>
               </div>
             ))}
           </div>
@@ -69,7 +69,7 @@ export default async function OverviewPage() {
             <Link key={c.t} href={c.href} className="indexcard">
               <div className="deweycall">CARD · {String(i + 1).padStart(3, "0")}</div>
               <div className="font-serif" style={{ fontWeight: 600, fontSize: 18 }}>{c.t}</div>
-              <div className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{c.d}</div>
+              <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{c.d}</div>
               <div className="accent font-typewriter" style={{ fontSize: 10, letterSpacing: "0.1em", marginTop: 14 }}>{c.a}</div>
             </Link>
           ))}

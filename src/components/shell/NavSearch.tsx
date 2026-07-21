@@ -147,7 +147,7 @@ export default function NavSearch() {
             >
               <span className="font-serif" style={{ fontWeight: 600 }}>
                 {h.title}{" "}
-                <span className="muted" style={{ fontWeight: 400, fontStyle: "italic" }}>
+                <span className="muted" style={{ fontWeight: 400 }}>
                   · {h.year ?? "—"} · {h.publisher ?? "Unknown"}
                 </span>
               </span>
@@ -158,7 +158,7 @@ export default function NavSearch() {
           ))}
           {!loading && hits.length === 0 ? (
             <div style={{ padding: "12px 14px" }}>
-              <p className="font-serif muted" style={{ fontStyle: "italic", margin: 0 }}>
+              <p className="font-serif muted" style={{ margin: 0 }}>
                 No catalogue match for &ldquo;{q}&rdquo;.
               </p>
               {igdb ? (

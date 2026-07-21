@@ -222,7 +222,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 }
 /* We render our own clear button. */
 .navsearch input::-webkit-search-cancel-button { display: none; }
-.navsearch input::placeholder { color: var(--ink-3); font-style: italic; }
+.navsearch input::placeholder { color: var(--ink-3); }
 .navsearch-clear {
   background: none; border: 0; color: var(--ink-3); cursor: pointer;
   font-size: 12px; padding: 2px 6px;

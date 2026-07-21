@@ -432,7 +432,7 @@ export default function CatalogBrowser({
               ? `${(data?.total ?? 0).toLocaleString()} cards filed`
               : "Build a view of the ledger"}
           </h2>
-          <p className="font-serif muted" style={{ fontStyle: "italic", margin: "2px 0 0", fontSize: 13, maxWidth: 540 }}>
+          <p className="font-serif muted" style={{ margin: "2px 0 0", fontSize: 13, maxWidth: 540 }}>
             {mode === "simple"
               ? "Filter from the rail (sections collapse — open what you need) or switch to advanced for query syntax."
               : "Compose any cross-section: platform:Steam decade:2010s rating:\"≥ 90\"."}
@@ -478,7 +478,7 @@ export default function CatalogBrowser({
             <button className="chip" onClick={runAdvanced}>⌘↵ run</button>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
-            <span className="font-serif muted" style={{ fontStyle: "italic" }}>Try:</span>
+            <span className="font-serif muted">Try:</span>
             {['publisher:Konami', 'platform:Steam decade:2010s', 'rating:"≥ 90"', 'mode:"Single player"', 'theme:Horror'].map((ex) => (
               <button key={ex} className="chip" onClick={() => setQueryText(ex)}>{ex}</button>
             ))}
@@ -499,7 +499,7 @@ export default function CatalogBrowser({
         </button>
         <span className="font-serif" aria-live="polite" style={{ flex: 1, minWidth: 120 }}>
           <strong>{(data?.total ?? 0).toLocaleString()}</strong> records
-          {loading ? <span className="muted" style={{ fontStyle: "italic" }}> · loading…</span> : null}
+          {loading ? <span className="muted"> · loading…</span> : null}
         </span>
         <select
           value={sort}
@@ -534,7 +534,7 @@ export default function CatalogBrowser({
         >
           {!loading && data && data.total === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 20px" }}>
-              <p className="font-serif" style={{ fontStyle: "italic", fontSize: 16, color: "var(--ink-2)", margin: 0 }}>
+              <p className="font-serif" style={{ fontSize: 16, color: "var(--ink-2)", margin: 0 }}>
                 No cards match this combination of filters.
               </p>
               {activeFilterCount ? (
@@ -557,7 +557,7 @@ export default function CatalogBrowser({
                     )}
                   </div>
                   <div className="font-serif" style={{ fontWeight: 600, fontSize: 13, marginTop: 8, lineHeight: 1.2 }}>{g.title}</div>
-                  <div className="font-serif muted" style={{ fontStyle: "italic", fontSize: 11, marginTop: 2 }}>
+                  <div className="font-serif muted" style={{ fontSize: 11, marginTop: 2 }}>
                     {g.year ?? "—"} · {g.publisher ?? "Unknown"}
                   </div>
                   <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
@@ -587,7 +587,7 @@ export default function CatalogBrowser({
                       <td className="accent">{g.callNumber}</td>
                       <td>
                         <Link href={`/record/${g.slug}`} className="font-serif" style={{ fontWeight: 600, fontSize: 13 }}>{g.title}</Link>
-                        <div className="font-serif muted" style={{ fontStyle: "italic", fontSize: 11 }}>
+                        <div className="font-serif muted" style={{ fontSize: 11 }}>
                           {(g.genres[0] ?? "—")} · {g.developer ?? "Unknown"}
                         </div>
                       </td>

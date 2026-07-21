@@ -96,7 +96,7 @@ function HomeStreamInner({ showNsfw }: { showNsfw: boolean }) {
             <div className="font-serif" style={{ fontWeight: 600, fontSize: 13, marginTop: 8, lineHeight: 1.2 }}>
               {g.title}
             </div>
-            <div className="font-serif muted" style={{ fontStyle: "italic", fontSize: 11, marginTop: 2 }}>
+            <div className="font-serif muted" style={{ fontSize: 11, marginTop: 2 }}>
               {g.year ?? "—"} · {g.publisher ?? "Unknown"}
             </div>
             <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>

@@ -32,7 +32,7 @@ export default async function AboutPage() {
         <h2 className="font-serif" style={{ fontSize: 34, margin: "6px 0 4px", fontWeight: 600 }}>
           Where the data comes from
         </h2>
-        <p className="font-serif" style={{ fontStyle: "italic", color: "var(--ink-2)", fontSize: 15, margin: 0 }}>
+        <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, margin: 0 }}>
           A card catalogue of {total.toLocaleString()} games that are no longer
           sold — assembled from public game databases and refreshed
           automatically.

@@ -60,7 +60,7 @@ export default function SearchFallback({ query, className = "" }: SearchFallback
     <div className={`mt-6 border border-dashed border-[color:var(--rule)] bg-[color:var(--paper-2)] p-5 ${className}`}>
       {!result && !error ? (
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-serif text-sm italic text-[color:var(--ink-2)]">
+          <p className="font-serif text-sm text-[color:var(--ink-2)]">
             No catalogue match for &ldquo;{trimmed}&rdquo;.
           </p>
           <button
