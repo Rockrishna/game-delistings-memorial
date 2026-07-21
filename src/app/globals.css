@@ -302,11 +302,14 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   .masthead h1 { font-size: 22px; }
   .masthead .masthead-actions { align-self: flex-start; }
   .navrow { padding: 0 14px; }
-  .navrow a { padding: 11px 13px; font-size: 13px; }
-  .navsearch { padding: 8px 14px; }
+  .navrow a { padding: 14px 14px; font-size: 14px; }
+  .navsearch { padding: 10px 14px; }
+  .navsearch input { font-size: 16px; }
   .navsearch-pop { left: 8px; right: 8px; }
-  /* Bigger tap targets and tighter charts on phones. */
-  .chip { padding: 7px 12px; font-size: 11.5px; }
+  /* Bigger tap targets and tighter charts on phones. Toggles/chips get a
+     44px-tall touch area (WCAG 2.5.5) so they're easy to press by thumb. */
+  .chip { min-height: 44px; padding: 10px 15px; font-size: 12.5px; }
+  .navrow-actions { gap: 10px; padding-left: 12px; }
   .cardgrid.tight { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
   .bar-row { grid-template-columns: 92px 1fr 44px; gap: 8px; font-size: 12px; }
   .hist { gap: 6px; }
@@ -376,9 +379,11 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   transition: background-color 0.18s ease, transform 0.18s ease;
 }
 .drawer:hover { transform: translateY(-2px); }
+/* Decorative "drawer pull" — sits near the top so it never collides with the
+   bottom-aligned storefront label below it. */
 .drawer::before {
-  content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
-  width: 14px; height: 14px; border: 1.5px solid var(--ink); border-radius: 999px;
+  content: ""; position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  width: 12px; height: 12px; border: 1.5px solid var(--ink); border-radius: 999px;
 }
 .drawer:hover { background: var(--paper-3); }
 

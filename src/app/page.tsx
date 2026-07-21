@@ -49,7 +49,7 @@ export default async function OverviewPage() {
                 key={p.name}
                 href={`/catalog?platform=${encodeURIComponent(p.name)}`}
                 className="drawer"
-                style={{ aspectRatio: "3/2", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start" }}
+                style={{ minHeight: 104, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start" }}
               >
                 <div className="strap" style={{ fontSize: 9 }}>DRAWER {String(i + 1).padStart(2, "0")}</div>
                 <div className="font-serif" style={{ fontSize: 18, fontWeight: 600, marginTop: 2 }}>{p.name}</div>
