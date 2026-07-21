@@ -121,7 +121,7 @@ export default function NavSearch() {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="Search titles, publishers, developers…"
+        placeholder="Search titles, people, or call number…"
         aria-label="Search the catalogue"
         role="combobox"
         aria-expanded={popOpen}

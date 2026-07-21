@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   const data = {
     slug: igdb.slug,
     name: igdb.name,
-    callNumber: callNumberFor(igdb.igdbId),
+    callNumber: callNumberFor(igdb.igdbId, igdb.platforms.map((p) => p.name), releaseYear),
     summary: igdb.summary,
     firstReleaseAt: igdb.firstReleaseAt,
     releaseYear,

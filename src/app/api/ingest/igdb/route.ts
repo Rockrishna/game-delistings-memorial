@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       const data = {
         slug: item.slug,
         name: item.name,
-        callNumber: callNumberFor(item.igdbId),
+        callNumber: callNumberFor(item.igdbId, item.platforms.map((p) => p.name), releaseYear),
         summary: item.summary,
         firstReleaseAt: item.firstReleaseAt,
         releaseYear,

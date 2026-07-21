@@ -55,8 +55,15 @@ export default async function RecordPage({
   return (
     <UShell total={total}>
       <div style={{ padding: "24px 28px 8px" }}>
-        <div className="strap accent" style={{ fontSize: 11, letterSpacing: "0.16em" }}>CALL NO. {g.callNumber}</div>
-        <h2 className="font-serif" style={{ fontSize: "clamp(26px, 6vw, 42px)", fontWeight: 600, margin: "6px 0 2px" }}>{g.title}</h2>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+          <div className="font-mono" style={{ fontSize: 26, fontWeight: 700, letterSpacing: "0.04em", color: "var(--accent)" }}>
+            {g.callNumber}
+          </div>
+          <Link href="/cataloguing" className="strap" style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>
+            what&rsquo;s this number? ↗
+          </Link>
+        </div>
+        <h2 className="font-serif" style={{ fontSize: "clamp(26px, 6vw, 42px)", fontWeight: 600, margin: "8px 0 2px" }}>{g.title}</h2>
         <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15 }}>
           {g.developer ?? "Unknown developer"} · {g.year ?? "—"} · published by {g.publisher ?? "Unknown"}
         </div>
@@ -184,7 +191,10 @@ export default async function RecordPage({
               <br />
               entry created {g.createdAt.slice(0, 10)}
               <br />
-              last IGDB sync {g.lastSyncedAt ? g.lastSyncedAt.slice(0, 10) : "—"}
+              last synced {g.lastSyncedAt ? g.lastSyncedAt.slice(0, 10) : "—"}
+            </div>
+            <div className="font-serif muted" style={{ fontSize: 12, marginTop: 8 }}>
+              Search any part of the call number (store, year, or digits) in the ⌕ bar to find this record. <Link href="/cataloguing" className="accent">How the numbering works ↗</Link>
             </div>
           </div>
         </aside>

@@ -223,7 +223,13 @@ function matchesQuery(card: GameCard, q: CatalogQuery): boolean {
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    if (!hay.includes(s)) return false;
+    // Also match the call number by any segment: normalise both sides to
+    // alphanumerics so "STE", "2014", "8234", or a partial like "823" all hit
+    // (e.g. searching digits acts as a partial filing-number lookup).
+    const normCall = card.callNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normS = s.replace(/[^a-z0-9]/g, "");
+    const hit = hay.includes(s) || (normS.length >= 2 && normCall.includes(normS));
+    if (!hit) return false;
   }
   if (q.hasCover && !card.hasCover) return false;
 

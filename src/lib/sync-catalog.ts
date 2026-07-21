@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { invalidateCatalogCache } from "@/lib/catalog";
+import { invalidateCatalogCache, platformFamily } from "@/lib/catalog";
 import {
   getDelistedStatusIds,
   fetchGamesByStatus,
@@ -20,14 +20,48 @@ export type SyncSummary = {
   errors: Array<{ name: string; reason: string }>;
 };
 
+// 3-letter "cabinet" code per storefront family, and the priority used to pick
+// one when a game shipped on several. The overview already frames storefronts
+// as drawers, so the call number reads: cabinet (store) · drawer (year) · item.
+const FAMILY_CODE: Record<string, string> = {
+  Steam: "STE",
+  PlayStation: "PLA",
+  Xbox: "XBO",
+  Nintendo: "NIN",
+  iOS: "IOS",
+  Android: "AND",
+  Epic: "EPI",
+  Other: "GEN",
+};
+const FAMILY_PRIORITY = [
+  "Steam",
+  "PlayStation",
+  "Xbox",
+  "Nintendo",
+  "iOS",
+  "Android",
+  "Epic",
+];
+
+export function primaryFamilyCode(platformNames: string[]): string {
+  const fams = new Set(platformNames.map(platformFamily));
+  for (const f of FAMILY_PRIORITY) if (fams.has(f)) return FAMILY_CODE[f];
+  return FAMILY_CODE.Other;
+}
+
 /**
- * Library-style call number, stable for the life of an IGDB id and unique
- * (bijective with igdbId): igdbId 8234 → "DG.823.4".
+ * Descriptive "cabinet filing" call number: {STORE} · {YEAR} · {igdbId}
+ * e.g. "STE · 2014 · 8234". The igdbId tail keeps it globally unique and
+ * stable; the store/year prefix makes it meaningful and searchable by segment.
+ * Unknown year → "----". See /cataloguing for the full explanation.
  */
-export function callNumberFor(igdbId: number): string {
-  const klass = Math.floor(igdbId / 10);
-  const item = igdbId % 10;
-  return `DG.${klass}.${item}`;
+export function callNumberFor(
+  igdbId: number,
+  platformNames: string[] = [],
+  year: number | null = null
+): string {
+  const code = primaryFamilyCode(platformNames);
+  return `${code} · ${year ?? "----"} · ${igdbId}`;
 }
 
 function decadeFor(year: number | null): string | null {
@@ -122,7 +156,7 @@ async function upsertGame(
   const data = {
     slug: igdb.slug,
     name: igdb.name,
-    callNumber: callNumberFor(igdb.igdbId),
+    callNumber: callNumberFor(igdb.igdbId, igdb.platforms.map((p) => p.name), releaseYear),
     summary: igdb.summary,
     firstReleaseAt: igdb.firstReleaseAt,
     releaseYear,
