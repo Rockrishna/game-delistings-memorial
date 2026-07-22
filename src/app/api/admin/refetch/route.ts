@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
           rawgId: rawg?.rawgId ?? null,
           rawgSlug: rawg?.rawgSlug ?? null,
           rawgLinks: JSON.stringify(rawg?.links ?? []),
+          lastSyncedAt: new Date(),
           ...(g.igdbId != null
             ? { callNumber: callNumberFor(g.igdbId, platformNames, g.releaseYear) }
             : {}),

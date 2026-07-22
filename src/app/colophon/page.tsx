@@ -1,6 +1,6 @@
 import Link from "next/link";
 import UShell from "@/components/shell/UShell";
-import { getTotalCount } from "@/lib/catalog";
+import { getTotalCount, getLastSyncedAt } from "@/lib/catalog";
 import { getIgdbCacheStats } from "@/lib/igdb";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,21 @@ function Block({ strap, title, children }: { strap: string; title: string; child
 
 const P: React.CSSProperties = { color: "var(--ink-2)", fontSize: 15, lineHeight: 1.6, marginTop: 12 };
 
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default async function ColophonPage() {
-  const [total, cache] = await Promise.all([getTotalCount(), getIgdbCacheStats()]);
+  const [total, cache, lastSyncedAt] = await Promise.all([
+    getTotalCount(),
+    getIgdbCacheStats(),
+    getLastSyncedAt(),
+  ]);
 
   return (
     <UShell total={total}>
@@ -38,6 +51,25 @@ export default async function ColophonPage() {
           assembled from public game databases, filed under a{" "}
           <Link href="/cataloguing" className="accent">cabinet call number</Link>, and refreshed automatically.
         </p>
+
+        {/* When records were last written from the source APIs. */}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "baseline",
+            flexWrap: "wrap",
+            gap: "4px 12px",
+            border: "1.5px solid var(--ink)",
+            background: "var(--paper-2)",
+            padding: "10px 16px",
+            marginTop: 18,
+          }}
+        >
+          <span className="strap">DATABASE LAST UPDATED</span>
+          <span className="font-mono" style={{ fontSize: 16, fontWeight: 700 }}>
+            {fmtDate(lastSyncedAt)}
+          </span>
+        </div>
 
         <Block strap="PRIMARY SOURCE" title="IGDB (Internet Game Database)">
           <p className="font-serif" style={P}>
@@ -87,8 +119,9 @@ export default async function ColophonPage() {
             re-bills the source APIs.
           </p>
           <p className="font-mono muted" style={{ fontSize: 12, marginTop: 14 }}>
-            cached source requests: {cache.totalRequests.toLocaleString()}
-            {cache.lastSyncAt ? ` · last refresh ${cache.lastSyncAt.slice(0, 10)}` : ""}
+            records last written to the database {fmtDate(lastSyncedAt)}
+            {cache.lastSyncAt ? ` · most recent source API call ${cache.lastSyncAt.slice(0, 10)}` : ""}
+            {` · cached source requests ${cache.totalRequests.toLocaleString()}`}
           </p>
         </Block>
 

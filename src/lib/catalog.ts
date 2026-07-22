@@ -538,6 +538,21 @@ export async function getTotalCount(): Promise<number> {
   return (await getAllCards()).length;
 }
 
+/**
+ * When the catalogue itself was last written from the source APIs — the most
+ * recent `lastSyncedAt` across all records (stamped by the sync sweep, the
+ * ingest route, and the refetch/repair pass). This is "when the database was
+ * last updated", as distinct from the request-cache timestamp.
+ */
+export async function getLastSyncedAt(): Promise<string | null> {
+  const row = await prisma.game.findFirst({
+    where: { lastSyncedAt: { not: null } },
+    orderBy: { lastSyncedAt: "desc" },
+    select: { lastSyncedAt: true },
+  });
+  return row?.lastSyncedAt?.toISOString() ?? null;
+}
+
 export async function getAllRecordSlugs(): Promise<string[]> {
   const rows = await prisma.game.findMany({ select: { slug: true } });
   return rows.map((r) => r.slug);
