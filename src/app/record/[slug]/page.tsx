@@ -51,6 +51,15 @@ export default async function RecordPage({
   if (g.metacritic != null) meta.push(["Metacritic", `${g.metacritic} / 100`]);
 
   const igdbUrl = `https://www.igdb.com/games/${g.slug}`;
+  const rawgUrl = g.rawgSlug ? `https://rawg.io/games/${g.rawgSlug}` : null;
+  // Merge IGDB's official websites with RAWG's external links (store pages,
+  // official site, Reddit, Metacritic), de-duplicated by URL.
+  const seenUrls = new Set<string>();
+  const externalLinks = [...g.websites, ...g.rawgLinks].filter((l) => {
+    if (!l.url || seenUrls.has(l.url)) return false;
+    seenUrls.add(l.url);
+    return true;
+  });
 
   return (
     <UShell total={total}>
@@ -150,32 +159,45 @@ export default async function RecordPage({
 
         <aside style={{ padding: "24px 20px" }}>
           <div style={{ border: "1.5px solid var(--ink)", padding: 16, background: "var(--paper-2)" }}>
-            <div className="strap accent">EXTERNAL ENTRY</div>
-            <div className="font-serif" style={{ fontSize: 18, fontWeight: 600, marginTop: 6, lineHeight: 1.2 }}>View on IGDB</div>
-            <div className="font-serif muted" style={{ fontSize: 13, marginTop: 4 }}>
-              Open the canonical entry for cover assets, screenshots, and
-              external links.
+            <div className="strap accent">DATABASE ENTRIES</div>
+            <div className="font-serif muted" style={{ fontSize: 13, margin: "6px 0 12px" }}>
+              The canonical database entries this record is sourced from.
             </div>
             <a
               href={igdbUrl}
               target="_blank"
               rel="noreferrer"
               className="font-serif"
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14, padding: "10px 12px", background: "var(--ink)", color: "var(--paper)", fontSize: 13, fontWeight: 600 }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--ink)", color: "var(--paper)", fontSize: 13, fontWeight: 600 }}
             >
-              <span>↗ igdb.com/games/{g.slug}</span>
+              <span>↗ View on IGDB</span>
               <span className="font-mono" style={{ opacity: 0.7 }}>↗</span>
             </a>
-            <div className="font-mono muted" style={{ fontSize: 10, marginTop: 8, letterSpacing: "0.08em" }}>
-              IGDB ID · {g.igdbId ?? "—"} · slug · {g.slug}
+            {rawgUrl ? (
+              <a
+                href={rawgUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-serif"
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, padding: "10px 12px", border: "1px solid var(--ink)", color: "var(--ink)", fontSize: 13, fontWeight: 600 }}
+              >
+                <span>↗ View on RAWG</span>
+                <span className="font-mono" style={{ opacity: 0.7 }}>↗</span>
+              </a>
+            ) : null}
+            <div className="font-mono muted" style={{ fontSize: 10, marginTop: 10, letterSpacing: "0.08em" }}>
+              IGDB ID · {g.igdbId ?? "—"}{g.rawgId ? ` · RAWG ID · ${g.rawgId}` : ""}
             </div>
           </div>
 
-          {g.websites.length ? (
+          {externalLinks.length ? (
             <div style={{ marginTop: 16 }}>
-              <div className="strap">OFFICIAL LINKS</div>
+              <div className="strap">EXTERNAL LINKS</div>
+              <div className="font-serif muted" style={{ fontSize: 11, marginTop: 2 }}>
+                Store pages &amp; official links via IGDB and RAWG.
+              </div>
               <ul className="font-serif" style={{ listStyle: "none", padding: 0, margin: "8px 0 0", fontSize: 13 }}>
-                {g.websites.slice(0, 8).map((w, idx) => (
+                {externalLinks.slice(0, 12).map((w, idx) => (
                   <li key={idx} style={{ padding: "6px 0", borderBottom: "1px dashed var(--rule-soft)", display: "flex", justifyContent: "space-between", gap: 8 }}>
                     <a href={w.url} target="_blank" rel="noreferrer">↗ {w.category}</a>
                   </li>

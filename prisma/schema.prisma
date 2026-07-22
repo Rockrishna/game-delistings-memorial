@@ -39,6 +39,13 @@ model Game {
   // RAWG fallback metric, only populated when IGDB lacks scores.
   metacritic       Int?
 
+  // RAWG cross-links: the RAWG game (id + slug → rawg.io/games/<slug>) plus a
+  // JSON [{ category, url }] of external links harvested from RAWG (store
+  // pages, official site, Reddit, Metacritic).
+  rawgId    Int?
+  rawgSlug  String?
+  rawgLinks String? // JSON-serialised { category: string; url: string }[]
+
   publisher String?
   developer String?
 

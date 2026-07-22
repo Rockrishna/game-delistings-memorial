@@ -11,13 +11,13 @@ const NAV = [
   { key: "overview", label: "Overview", href: "/", desc: "The collection at a glance" },
   { key: "catalog", label: "The Catalog", href: "/catalog", desc: "Browse & filter every record" },
   { key: "insights", label: "Insights", href: "/insights", desc: "Charts & patterns in the data" },
-  { key: "about", label: "About the data", href: "/about-igdb", desc: "Sources, method & disclaimer" },
+  { key: "colophon", label: "Colophon", href: "/colophon", desc: "How it's made, sources & disclaimer" },
 ];
 
 function surfaceOf(pathname: string): string {
   if (pathname.startsWith("/catalog")) return "catalog";
   if (pathname.startsWith("/insights")) return "insights";
-  if (pathname.startsWith("/about")) return "about";
+  if (pathname.startsWith("/colophon") || pathname.startsWith("/about")) return "colophon";
   if (pathname.startsWith("/record")) return "catalog";
   return "overview";
 }

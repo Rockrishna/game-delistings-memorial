@@ -5,7 +5,7 @@ import {
   fetchGamesByStatus,
   type NormalizedIGDBGame,
 } from "@/lib/igdb";
-import { fetchRawgFallback } from "@/lib/rawg";
+import { fetchRawg } from "@/lib/rawg";
 import { isNsfwGame } from "@/lib/nsfw";
 
 const PAGE_SIZE = 250;
@@ -139,13 +139,19 @@ async function upsertGame(
   let developer = igdb.developer;
   let metacritic: number | undefined;
   let enrichedFrom = "igdb";
+  let rawgId: number | undefined;
+  let rawgSlug: string | undefined;
+  let rawgLinks: Array<{ category: string; url: string }> | undefined;
 
   if (!publisher || !developer) {
-    const rawg = await fetchRawgFallback(igdb.name);
-    if (rawg.publisher || rawg.developer || rawg.metacritic != null) {
+    const rawg = await fetchRawg(igdb.name, releaseYear);
+    if (rawg) {
       publisher = publisher ?? rawg.publisher;
       developer = developer ?? rawg.developer;
       metacritic = rawg.metacritic;
+      rawgId = rawg.rawgId;
+      rawgSlug = rawg.rawgSlug;
+      rawgLinks = rawg.links;
       if (rawg.publisher || rawg.developer) {
         enrichedFrom = "igdb+rawg";
         summary.rawgBackfilled += 1;
@@ -188,6 +194,11 @@ async function upsertGame(
     enrichedFrom,
     igdbUpdatedAt: undefined,
     lastSyncedAt: new Date(),
+    // Only written when RAWG was actually consulted, so a re-sync that skips
+    // RAWG (IGDB already had publisher+developer) never nulls existing links.
+    ...(rawgId !== undefined ? { rawgId } : {}),
+    ...(rawgSlug !== undefined ? { rawgSlug } : {}),
+    ...(rawgLinks !== undefined ? { rawgLinks: JSON.stringify(rawgLinks) } : {}),
   };
 
   const game = await prisma.game.upsert({
