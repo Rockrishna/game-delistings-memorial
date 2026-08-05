@@ -24,6 +24,7 @@ export default async function OverviewPage() {
     { t: "Browse the catalog", d: `${o.total.toLocaleString()} records · filter by anything`, a: "open the catalog →", href: "/catalog" },
     { t: "Explore the insights", d: "Charts, heatmaps, and patterns", a: "insights →", href: "/insights" },
     { t: "Search for a title", d: "By name, publisher, developer, or call number", a: "⌕ search →", href: "/catalog" },
+    { t: "How titles are sorted", d: "Shelf order: symbols, numbers, then letters", a: "shelf order →", href: "/sorting" },
   ];
 
   return (
@@ -32,10 +33,12 @@ export default async function OverviewPage() {
         <div style={{ padding: "32px 36px", borderRight: "1px solid var(--rule)" }}>
           <div className="strap" style={{ color: "var(--accent)" }}>THE COLLECTION</div>
           <div className="bignum" style={{ margin: "10px 0 4px" }}>{o.total.toLocaleString()}</div>
-          <p className="font-serif" style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 520, margin: "6px 0 0" }}>
+          <p className="font-serif" style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 660, margin: "6px 0 0" }}>
             games that are no longer sold on major digital storefronts,
             catalogued from public game databases. Each has its own record and
-            a filing number.
+            a <Link href="/cataloguing" className="accent">filing number</Link>,
+            and the shelf they sit on is ordered by{" "}
+            <Link href="/sorting" className="accent">a set of rules</Link>.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 18, marginTop: 30 }}>
             {tiles.map(([k, v, extra]) => (
@@ -48,20 +51,31 @@ export default async function OverviewPage() {
           </div>
         </div>
 
-        <div style={{ padding: "24px 28px" }}>
-          <div className="strap">SHELF I · BY STOREFRONT</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8, marginTop: 10 }}>
+        {/* The drawers stack two-up and stretch to the height of the panel
+            beside them (see .shelfgrid), so this half of the band fills
+            instead of trailing off into empty paper on a wide screen. */}
+        <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column" }}>
+          <div className="strap" style={{ marginBottom: 10 }}>SHELF I · BY STOREFRONT</div>
+          <div className="shelfgrid">
             {o.byPlatform.map((p, i) => (
               <Link
                 key={p.name}
                 href={`/catalog?platform=${encodeURIComponent(p.name)}`}
                 className="drawer"
-                style={{ minHeight: 104, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start" }}
+                style={{ minHeight: 84, display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "stretch" }}
               >
                 <div className="strap" style={{ fontSize: 9 }}>DRAWER {String(i + 1).padStart(2, "0")}</div>
-                <div className="font-serif" style={{ fontSize: 18, fontWeight: 600, marginTop: 2 }}>{p.name}</div>
-                <div className="accent font-typewriter" style={{ fontSize: 11, letterSpacing: "0.1em", marginTop: 4 }}>
-                  {p.count.toLocaleString()}
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginTop: 2 }}>
+                  <span className="font-serif" style={{ fontSize: 18, fontWeight: 600 }}>{p.name}</span>
+                  <span className="accent font-typewriter" style={{ fontSize: 11, letterSpacing: "0.1em" }}>
+                    {p.count.toLocaleString()}
+                  </span>
+                </div>
+                <div className="drawer-meter" aria-hidden="true">
+                  <span style={{ width: `${Math.max(2, p.pct)}%` }} />
+                </div>
+                <div className="font-serif" style={{ color: "var(--ink-3)", fontSize: 11, marginTop: 4 }}>
+                  {p.pct}% of the catalogue
                 </div>
               </Link>
             ))}
@@ -71,7 +85,7 @@ export default async function OverviewPage() {
 
       <div style={{ padding: "28px 36px" }}>
         <div className="strap" style={{ marginBottom: 14 }}>WHERE TO BEGIN</div>
-        <div className="cardgrid">
+        <div className="cardgrid fitted">
           {begin.map((c, i) => (
             <Link key={c.t} href={c.href} className="indexcard">
               <div className="deweycall">CARD · {String(i + 1).padStart(3, "0")}</div>

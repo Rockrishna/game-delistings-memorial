@@ -524,6 +524,7 @@ export default function CatalogBrowser({
           <option value="year">sort : newest</option>
           <option value="year-asc">sort : oldest</option>
         </select>
+        <Link className="chip" href="/sorting" title="How shelf order works">? sort rules</Link>
         <a className="chip" href={`/api/catalog?${queryString}&pageSize=120`} download="catalogue.json">⤓ JSON</a>
       </div>
 

@@ -51,6 +51,11 @@ export default async function ColophonPage() {
           assembled from public game databases, filed under a{" "}
           <Link href="/cataloguing" className="accent">cabinet call number</Link>, and refreshed automatically.
         </p>
+        <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, margin: "10px 0 0", lineHeight: 1.6 }}>
+          Two companion pages explain the mechanics:{" "}
+          <Link href="/cataloguing" className="accent">how the call numbers work ↗</Link>{" "}
+          and <Link href="/sorting" className="accent">how titles are sorted ↗</Link>.
+        </p>
 
         {/* When records were last written from the source APIs. */}
         <div

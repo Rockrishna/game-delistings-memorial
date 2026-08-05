@@ -17,7 +17,17 @@ const NAV = [
 function surfaceOf(pathname: string): string {
   if (pathname.startsWith("/catalog")) return "catalog";
   if (pathname.startsWith("/insights")) return "insights";
-  if (pathname.startsWith("/colophon") || pathname.startsWith("/about")) return "colophon";
+  // The explainer pages (call numbers, shelf order) belong to the same
+  // "how this catalogue works" surface as the Colophon, which links to both —
+  // otherwise they'd leave Overview marked as the current page.
+  if (
+    pathname.startsWith("/colophon") ||
+    pathname.startsWith("/about") ||
+    pathname.startsWith("/cataloguing") ||
+    pathname.startsWith("/sorting")
+  ) {
+    return "colophon";
+  }
   if (pathname.startsWith("/record")) return "catalog";
   return "overview";
 }

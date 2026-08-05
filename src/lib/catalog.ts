@@ -57,6 +57,42 @@ export function platformFamily(name: string): string {
   return "Other";
 }
 
+/* ---------------- Shelf order ----------------
+ * One comparator drives every ordered surface (the catalog grid and ledger,
+ * the JSON export, the home stream), so what the site shows is exactly what
+ * /sorting documents:
+ *   - titles compare with a numeric-aware collator: case and accents don't
+ *     affect the order, and runs of digits compare as numbers, so "… 2" files
+ *     before "… 10";
+ *   - a blank value (no rating, no release year) always files last, whichever
+ *     direction the sort runs;
+ *   - equal keys fall back to the title, then the call number, so a record
+ *     can never swap pages between two identical queries.
+ */
+export type SortKey = "title" | "rating" | "year" | "year-asc";
+
+// Locale is pinned so the order can't drift with the server's default locale.
+const titleCollator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+
+export function compareTitles(a: string, b: string): number {
+  return titleCollator.compare(a, b);
+}
+
+export function compareCards(a: GameCard, b: GameCard, sort: SortKey): number {
+  if (sort === "rating") {
+    if ((a.rating == null) !== (b.rating == null)) return a.rating == null ? 1 : -1;
+    if (a.rating != null && b.rating != null && a.rating !== b.rating) {
+      return b.rating - a.rating;
+    }
+  } else if (sort === "year" || sort === "year-asc") {
+    if ((a.year == null) !== (b.year == null)) return a.year == null ? 1 : -1;
+    if (a.year != null && b.year != null && a.year !== b.year) {
+      return sort === "year" ? b.year - a.year : a.year - b.year;
+    }
+  }
+  return compareTitles(a.title, b.title) || a.callNumber.localeCompare(b.callNumber);
+}
+
 function ratingBucket(rating: number | null): string {
   if (rating == null) return "Unrated";
   if (rating >= 90) return "≥ 90";
@@ -190,7 +226,7 @@ export type CatalogQuery = {
   // rows and facet counts. They remain in the data behind insights/overview —
   // this only governs the browsing view.
   includeNsfw?: boolean;
-  sort?: "title" | "rating" | "year" | "year-asc";
+  sort?: SortKey;
   page?: number;
   pageSize?: number;
 };
@@ -259,12 +295,7 @@ export async function getCatalog(q: CatalogQuery) {
   const filtered = cards.filter((c) => matchesQuery(c, q));
 
   const sort = q.sort ?? "title";
-  filtered.sort((a, b) => {
-    if (sort === "rating") return (b.rating ?? -1) - (a.rating ?? -1);
-    if (sort === "year") return (b.year ?? 0) - (a.year ?? 0);
-    if (sort === "year-asc") return (a.year ?? 9999) - (b.year ?? 9999);
-    return a.title.localeCompare(b.title);
-  });
+  filtered.sort((a, b) => compareCards(a, b, sort));
 
   const page = Math.max(1, q.page ?? 1);
   const pageSize = Math.min(120, Math.max(1, q.pageSize ?? 24));

@@ -153,6 +153,18 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
    sideways instead of scrolling inside .scroll-x. */
 .app { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); }
 
+/* Past this width the catalogue stops stretching and reads as a bound sheet:
+   the shell centres between hairline rules and the surround darkens a shade,
+   so the margins look like margins rather than like space nobody filled.
+   Below it the layout stays edge-to-edge exactly as before. */
+@media (min-width: 1560px) {
+  body { background: var(--paper-2); }
+  .app {
+    max-width: 1500px; margin: 0 auto; background: var(--paper);
+    border-left: 1px solid var(--rule); border-right: 1px solid var(--rule);
+  }
+}
+
 /* Single header: masthead + a sticky horizontal navrow. No left rail.
    Compact: a linked title + one concise count line (no redundant eyebrow). */
 .masthead {
@@ -320,6 +332,39 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
 .cardgrid.tight { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+
+/* Small fixed sets of cards (the overview's "where to begin", the sort
+   samples). auto-FIT, not auto-fill: with only three or four children the
+   tracks stretch to fill the row instead of leaving empty columns hanging
+   off the right on a wide desktop. */
+.cardgrid.fitted { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.sortgrid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+}
+
+/* Overview shelf: the storefront drawers stack two-up and stretch to fill the
+   height of the collection panel beside them, so the hero band has no dead
+   air under it. An odd one out spans the full width rather than leaving a
+   hole. */
+.shelfgrid {
+  display: grid; gap: 8px; flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(84px, 1fr);
+}
+.shelfgrid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (max-width: 860px) {
+  .shelfgrid { grid-auto-rows: auto; }
+}
+
+/* Share-of-catalogue meter inside a drawer. */
+.drawer-meter {
+  height: 4px; background: var(--paper-3); border: 1px solid var(--rule-soft);
+  margin-top: 8px; position: relative;
+}
+.drawer-meter > span {
+  position: absolute; inset: 0 auto 0 0; background: var(--accent); display: block;
+}
 
 @media (max-width: 720px) {
   .masthead { flex-direction: column; padding: 16px 18px; gap: 12px; }

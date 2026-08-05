@@ -1,3 +1,4 @@
+import Link from "next/link";
 import UShell from "@/components/shell/UShell";
 import { getTotalCount } from "@/lib/catalog";
 
@@ -83,6 +84,11 @@ export default async function CataloguingPage() {
             <span className="font-mono">2014</span>, or any run of digits like{" "}
             <span className="font-mono">823</span> — a partial number narrows the
             catalogue to the records whose filing number contains it.
+          </p>
+          <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>
+            A call number says where a record is <strong>filed</strong>. The
+            order records are <strong>shown</strong> in is a separate scheme —{" "}
+            <Link href="/sorting" className="accent">how titles are sorted ↗</Link>.
           </p>
         </div>
       </div>
