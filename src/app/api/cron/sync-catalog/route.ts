@@ -7,9 +7,14 @@ import { getIgdbCacheStats } from "@/lib/igdb";
 export const maxDuration = 300;
 
 /**
- * Daily cron — re-runs the catalogue sweep so newly delisted/offline
- * titles get indexed and existing records re-enriched. Idempotent and
- * cached. Honours CRON_SECRET when configured.
+ * Bimonthly cron — re-runs the catalogue sweep so newly delisted/offline
+ * titles get indexed and existing records re-enriched. Idempotent, cached,
+ * and incremental: records IGDB hasn't touched since the last sweep are
+ * skipped without a write. Honours CRON_SECRET when configured.
+ *
+ * `?startPage=N` resumes a sweep that hit its time budget; `?force=1`
+ * rewrites every record (only for post-schema-change repair — it is the
+ * expensive path).
  */
 export async function GET(request: NextRequest) {
   if (env.CRON_SECRET) {
@@ -27,9 +32,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const summary = await syncCatalogFromIGDB();
-    const cache = await getIgdbCacheStats();
-    const totalGames = await prisma.game.count();
+    const sp = request.nextUrl.searchParams;
+    const startPage = Number(sp.get("startPage") ?? "0") || 0;
+    const summary = await syncCatalogFromIGDB({
+      force: sp.get("force") === "1",
+      startPage,
+    });
+
+    // Only pay for the cache/count reporting queries when the sweep actually
+    // did something — an unchanged run should cost the database almost nothing.
+    const didWork = summary.gamesUpserted > 0 || summary.errors.length > 0;
+    const [totalGames, cache] = didWork
+      ? await Promise.all([prisma.game.count(), getIgdbCacheStats()])
+      : [null, null];
+
     return NextResponse.json({ ok: true, summary, totalGames, cache });
   } catch (error) {
     return NextResponse.json(

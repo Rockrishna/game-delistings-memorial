@@ -261,14 +261,34 @@ async function cachedRequest<T>(opts: {
   endpoint: string;
   body: string;
   ttlMs: number;
+  /**
+   * Set for entries whose `response` is megabytes (the 250-game sweep pages).
+   * The freshness check then reads only `expiresAt`, so an expired entry never
+   * drags its whole payload across the wire just to be thrown away.
+   */
+  largePayload?: boolean;
 }): Promise<{ rows: T[]; fromCache: boolean }> {
-  const { cacheKey, endpoint, body, ttlMs } = opts;
+  const { cacheKey, endpoint, body, ttlMs, largePayload } = opts;
   const now = Date.now();
 
   try {
-    const cached = await prisma.igdbRequest.findUnique({ where: { cacheKey } });
-    if (cached && (!cached.expiresAt || cached.expiresAt.getTime() > now)) {
-      return { rows: JSON.parse(cached.response) as T[], fromCache: true };
+    if (largePayload) {
+      const meta = await prisma.igdbRequest.findUnique({
+        where: { cacheKey },
+        select: { expiresAt: true },
+      });
+      if (meta && (!meta.expiresAt || meta.expiresAt.getTime() > now)) {
+        const cached = await prisma.igdbRequest.findUnique({
+          where: { cacheKey },
+          select: { response: true },
+        });
+        if (cached) return { rows: JSON.parse(cached.response) as T[], fromCache: true };
+      }
+    } else {
+      const cached = await prisma.igdbRequest.findUnique({ where: { cacheKey } });
+      if (cached && (!cached.expiresAt || cached.expiresAt.getTime() > now)) {
+        return { rows: JSON.parse(cached.response) as T[], fromCache: true };
+      }
     }
   } catch {
     /* DB unreachable; fall through to live request */
@@ -347,11 +367,18 @@ async function buildAndQuery<T>(
   endpoint: string,
   cacheKey: string,
   ttlMs: number,
-  parts: QueryParts
+  parts: QueryParts,
+  opts?: { largePayload?: boolean }
 ): Promise<T[]> {
   const body = composeApicalypse(parts);
   if (!body) throw new Error(`empty apicalypse body for ${endpoint}`);
-  const { rows } = await cachedRequest<T>({ cacheKey, endpoint, body, ttlMs });
+  const { rows } = await cachedRequest<T>({
+    cacheKey,
+    endpoint,
+    body,
+    ttlMs,
+    largePayload: opts?.largePayload,
+  });
   return rows;
 }
 
@@ -451,7 +478,7 @@ export async function fetchGamesByStatus(opts: {
   limit: number;
   since?: number;
 }): Promise<{
-  games: Array<NormalizedIGDBGame & { status?: number }>;
+  games: Array<NormalizedIGDBGame & { status?: number; updatedAtSeconds?: number }>;
   rawUpdatedAt: Map<number, number>;
 }> {
   const { statusIds, offset, limit, since } = opts;
@@ -464,12 +491,18 @@ export async function fetchGamesByStatus(opts: {
   }
   const cacheKey = `games:status:${sorted.join(",")}${since ? `:since${Math.floor(since)}` : ""}:o${offset}:l${limit}:enriched2`;
 
-  const rows = await buildAndQuery<IGDBGame>("games", cacheKey, 7 * ONE_DAY_MS, {
-    fields: GAME_FIELDS,
-    where: whereClauses.join(" & "),
-    limit,
-    offset,
-  });
+  const rows = await buildAndQuery<IGDBGame>(
+    "games",
+    cacheKey,
+    7 * ONE_DAY_MS,
+    {
+      fields: GAME_FIELDS,
+      where: whereClauses.join(" & "),
+      limit,
+      offset,
+    },
+    { largePayload: true }
+  );
 
   const rawUpdatedAt = new Map<number, number>();
   for (const row of rows) {
@@ -477,7 +510,12 @@ export async function fetchGamesByStatus(opts: {
   }
 
   return {
-    games: rows.map((row) => ({ ...normalizeRow(row), status: row.status })),
+    games: rows.map((row) => ({
+      ...normalizeRow(row),
+      status: row.status,
+      // Carried through so the sync can skip records IGDB hasn't touched.
+      updatedAtSeconds: row.updated_at,
+    })),
     rawUpdatedAt,
   };
 }

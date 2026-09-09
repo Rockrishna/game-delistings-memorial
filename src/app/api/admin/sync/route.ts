@@ -27,7 +27,10 @@ export async function GET() {
     },
     gameCount,
     cache,
-    instructions: "POST to ingest. Pass ?fresh=1 to bypass the request cache.",
+    instructions:
+      "POST to ingest. ?fresh=1 clears the request cache and forces a full rewrite; " +
+      "?force=1 rewrites every record from the cached IGDB payloads; " +
+      "?startPage=N resumes a sweep that ran out of time.",
   });
 }
 
@@ -39,16 +42,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const fresh = new URL(request.url).searchParams.get("fresh") === "1";
+  const sp = new URL(request.url).searchParams;
+  const fresh = sp.get("fresh") === "1";
+  const force = sp.get("force") === "1";
+  const startPage = Number(sp.get("startPage") ?? "0") || 0;
 
   try {
     if (fresh) {
       await prisma.igdbRequest.deleteMany({});
     }
-    const summary = await syncCatalogFromIGDB();
+    const summary = await syncCatalogFromIGDB({ force: force || fresh, startPage });
     const cache = await getIgdbCacheStats();
     const totalGames = await prisma.game.count();
-    return NextResponse.json({ ok: true, fresh, summary, cache, totalGames });
+    return NextResponse.json({ ok: true, fresh, force, summary, cache, totalGames });
   } catch (error) {
     return NextResponse.json(
       {

@@ -39,7 +39,34 @@ const gameInclude = {
   genres: { include: { genre: true } },
 } satisfies Prisma.GameInclude;
 
-type GameWithRels = Prisma.GameGetPayload<{ include: typeof gameInclude }>;
+/**
+ * Exactly the columns `toCard` reads. The whole-catalogue load runs through
+ * this instead of `gameInclude`, so it stops dragging every summary, artwork
+ * URL list, screenshot list, website blob and age-rating blob for ~4,300
+ * records across the wire on each cold start.
+ */
+const cardSelect = {
+  id: true,
+  slug: true,
+  callNumber: true,
+  name: true,
+  releaseYear: true,
+  decade: true,
+  publisher: true,
+  developer: true,
+  gameModes: true,
+  themes: true,
+  playerPerspectives: true,
+  franchise: true,
+  rating: true,
+  statusLabel: true,
+  coverUrl: true,
+  nsfw: true,
+  platforms: { select: { platform: { select: { name: true } } } },
+  genres: { select: { genre: { select: { name: true } } } },
+} satisfies Prisma.GameSelect;
+
+type GameWithRels = Prisma.GameGetPayload<{ select: typeof cardSelect }>;
 
 const PLATFORM_FAMILIES: Array<{ name: string; match: (n: string) => boolean }> = [
   { name: "Steam", match: (n) => /windows|\bpc\b|mac|linux|dos|steam/.test(n) },
@@ -149,7 +176,7 @@ async function getAllCards(): Promise<GameCard[]> {
   if (cardCacheInFlight) return cardCacheInFlight;
   cardCacheInFlight = (async () => {
     try {
-      const rows = await prisma.game.findMany({ include: gameInclude });
+      const rows = await prisma.game.findMany({ select: cardSelect });
       const cards = rows.map(toCard);
       cardCache = { at: Date.now(), cards };
       return cards;
