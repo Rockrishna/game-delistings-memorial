@@ -247,12 +247,26 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 }
 .navsearch-row:hover { background: var(--paper-2); }
 
-.canvas { background: var(--paper); animation: fadeIn 0.25s ease; }
+/* Keyed on the route in UShell, so this entrance replays on every page swap:
+   the new page rises a couple of pixels into place instead of appearing all at
+   once under an unchanged header. */
+.canvas { background: var(--paper); animation: pageIn 0.3s ease-out; }
 
 /* ===== Motion ===== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+/* Indeterminate crawl: quick to two-thirds, then a slow creep, so a slow
+   dynamic page still looks like it's moving. */
+@keyframes navProgress {
+  0% { transform: translateX(-100%); }
+  40% { transform: translateX(-32%); }
+  100% { transform: translateX(-8%); }
 }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
@@ -279,7 +293,19 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .results { transition: opacity 0.18s ease; }
 .results.is-loading { opacity: 0.45; pointer-events: none; }
 
+/* Route change in flight: a hairline accent bar pinned above the masthead.
+   Rendered only while a navigation is pending (see NavProgress). */
+.navprogress {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 80;
+  background: var(--accent); transform-origin: left center;
+  animation: navProgress 6s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* The bar's whole job is motion; with animations flattened it would just
+     sit there as a full-width rule, so drop it. */
+  .navprogress { display: none; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;

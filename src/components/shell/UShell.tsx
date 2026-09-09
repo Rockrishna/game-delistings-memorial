@@ -6,25 +6,28 @@ import { usePathname } from "next/navigation";
 import NavSearch from "@/components/shell/NavSearch";
 import ThemeToggle from "@/components/shell/ThemeToggle";
 import NsfwToggle from "@/components/shell/NsfwToggle";
+import NavProgress from "@/components/layout/NavProgress";
 
 const NAV = [
   { key: "overview", label: "Overview", href: "/", desc: "The collection at a glance" },
   { key: "catalog", label: "The Catalog", href: "/catalog", desc: "Browse & filter every record" },
   { key: "insights", label: "Insights", href: "/insights", desc: "Charts & patterns in the data" },
+  { key: "sorting", label: "Shelf Order", href: "/sorting", desc: "How titles are put in A–Z order" },
   { key: "colophon", label: "Colophon", href: "/colophon", desc: "How it's made, sources & disclaimer" },
 ];
 
 function surfaceOf(pathname: string): string {
   if (pathname.startsWith("/catalog")) return "catalog";
   if (pathname.startsWith("/insights")) return "insights";
-  // The explainer pages (call numbers, shelf order) belong to the same
-  // "how this catalogue works" surface as the Colophon, which links to both —
-  // otherwise they'd leave Overview marked as the current page.
+  if (pathname.startsWith("/sorting")) return "sorting";
+  // Call numbers are explained on their own page, but it has no nav entry of
+  // its own: it belongs to the same "how this catalogue works" surface as the
+  // Colophon, which links to it — otherwise it would leave Overview marked as
+  // the current page.
   if (
     pathname.startsWith("/colophon") ||
     pathname.startsWith("/about") ||
-    pathname.startsWith("/cataloguing") ||
-    pathname.startsWith("/sorting")
+    pathname.startsWith("/cataloguing")
   ) {
     return "colophon";
   }
@@ -64,6 +67,7 @@ export default function UShell({
 
   return (
     <div className="app">
+      <NavProgress />
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
@@ -154,7 +158,12 @@ export default function UShell({
         <NavSearch />
       </div>
 
-      <main id="main" className="canvas">{children}</main>
+      {/* Keyed by route: UShell is the same component on every page, so
+          without a key React reuses this <main> node and the canvas entrance
+          animation would never replay — pages would hard-swap. The key stays
+          stable across query-string changes (filters, paging), so the Catalog
+          doesn't re-animate on every filter. */}
+      <main id="main" key={pathname} className="canvas">{children}</main>
     </div>
   );
 }
