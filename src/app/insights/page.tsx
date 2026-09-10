@@ -10,17 +10,33 @@ export const metadata = {
     "Charts and patterns drawn from the catalogue of delisted games: platforms, decades, genres, publishers, and ratings.",
 };
 
-const TILE_SPANS: Array<{ col: number; row: number; c: string }> = [
-  { col: 6, row: 3, c: "t-accent" },
-  { col: 6, row: 2, c: "" },
-  { col: 4, row: 2, c: "" },
-  { col: 4, row: 2, c: "" },
-  { col: 4, row: 1, c: "t-mid" },
-  { col: 3, row: 1, c: "t-mid" },
-  { col: 3, row: 1, c: "t-mid" },
-  { col: 3, row: 1, c: "t-soft" },
-  { col: 3, row: 1, c: "t-soft" },
-];
+/* Treemap tiling. Every row's spans add up to the grid's 12 columns and the
+   last, partial row is stretched to fill it, so a short list (six genres,
+   four themes) can't leave holes punched through the block. Tiles run large
+   to small, matching the ranked order they are given in. */
+const ROW_PATTERN = [[7, 5], [4, 4, 4], [3, 3, 3, 3], [6, 6], [4, 4, 4]];
+const ROW_HEIGHTS = [3, 2, 1, 1, 1];
+const TILE_TONES = ["t-accent", "", "", "", "t-mid", "t-mid", "t-mid", "t-soft", "t-soft"];
+
+function treemapTiles(count: number): Array<{ col: number; row: number; c: string }> {
+  const out: Array<{ col: number; row: number; c: string }> = [];
+  for (let i = 0, r = 0; i < count; r++) {
+    const idx = Math.min(r, ROW_PATTERN.length - 1);
+    const cols = ROW_PATTERN[idx].slice(0, Math.min(ROW_PATTERN[idx].length, count - i));
+    // A row that ran out of tiles shares the spare columns among the ones it has.
+    let spare = 12 - cols.reduce((a, b) => a + b, 0);
+    for (let k = 0; spare > 0; k = (k + 1) % cols.length, spare--) cols[k] += 1;
+    for (const col of cols) {
+      out.push({
+        col,
+        row: ROW_HEIGHTS[Math.min(r, ROW_HEIGHTS.length - 1)],
+        c: TILE_TONES[Math.min(out.length, TILE_TONES.length - 1)],
+      });
+    }
+    i += cols.length;
+  }
+  return out;
+}
 
 const enc = encodeURIComponent;
 
@@ -111,6 +127,8 @@ export default async function InsightsPage() {
   // because the flex column isn't a definite-height parent, so percentage
   // heights collapse to ~0 (bars render as flat lines).
   const BAR_PX = 190;
+  const genreTiles = treemapTiles(i.byGenre.length);
+  const themeTiles = treemapTiles(i.byTheme.length);
 
   const headline: Array<[string, string, string, string | null]> = [
     ["TOTAL", i.total.toLocaleString(), "records", null],
@@ -194,7 +212,7 @@ export default async function InsightsPage() {
         <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
           <div className="treemap">
             {i.byGenre.map((t, idx) => {
-              const s = TILE_SPANS[idx] ?? { col: 3, row: 1, c: "t-soft" };
+              const s = genreTiles[idx];
               return (
                 <Link
                   key={t.name}
@@ -307,7 +325,7 @@ export default async function InsightsPage() {
         <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
           <div className="treemap">
             {i.byTheme.map((t, idx) => {
-              const s = TILE_SPANS[idx] ?? { col: 3, row: 1, c: "t-soft" };
+              const s = themeTiles[idx];
               return (
                 <Link
                   key={t.name}

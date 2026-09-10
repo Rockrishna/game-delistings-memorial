@@ -437,7 +437,7 @@ export default function CatalogBrowser({
 
   return (
     <>
-      <div style={{ padding: "20px 28px 12px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+      <div className="catalog-head" style={{ padding: "20px 28px 12px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
           <div className="strap">THE CATALOGUE</div>
           <h2 className="font-serif" style={{ fontSize: 30, margin: "4px 0", fontWeight: 600 }}>
@@ -445,7 +445,7 @@ export default function CatalogBrowser({
               ? `${(data?.total ?? 0).toLocaleString()} records`
               : "Write a query"}
           </h2>
-          <p className="font-serif muted" style={{ margin: "2px 0 0", fontSize: 13, maxWidth: 560 }}>
+          <p className="font-serif muted catalog-head-note" style={{ margin: "2px 0 0", fontSize: 13, maxWidth: 560 }}>
             {mode === "simple"
               ? "Open the filters to narrow the shelf by storefront, decade, genre, publisher, and more."
               : "Combine any facets in one line, then read the results as a table."}
@@ -531,8 +531,8 @@ export default function CatalogBrowser({
           <option value="year">Sort by newest</option>
           <option value="year-asc">Sort by oldest</option>
         </select>
-        <Link className="chip" href="/sorting" title="How shelf order works">Shelf order</Link>
-        <a className="chip" href={`/api/catalog?${queryString}&pageSize=120`} download="catalogue.json">Download JSON</a>
+        <Link className="chip catalog-json" href="/sorting" title="How shelf order works">Shelf order</Link>
+        <a className="chip catalog-json" href={`/api/catalog?${queryString}&pageSize=120`} download="catalogue.json">Download JSON</a>
       </div>
 
       <div
