@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import NsfwProvider from "@/components/layout/NsfwProvider";
+import EndlessProvider from "@/components/layout/EndlessProvider";
 
 // Refined display serif — kept only for the biggest "catalogue" moments
 // (masthead title, the big collection numeral), where character matters and
@@ -79,8 +80,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <ThemeProvider>
           <NsfwProvider>
-            {children}
-            <ScrollToTop />
+            <EndlessProvider>
+              {children}
+              <ScrollToTop />
+            </EndlessProvider>
           </NsfwProvider>
         </ThemeProvider>
         <Analytics />

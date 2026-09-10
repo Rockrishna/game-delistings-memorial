@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useNsfw } from "@/components/layout/NsfwProvider";
+import { useEndless } from "@/components/layout/EndlessProvider";
 
 type Card = {
   slug: string;
@@ -16,65 +17,87 @@ type Card = {
 };
 
 const PAGE_SIZE = 24;
+// Endless scrolling loads at most this many pages before it pauses on a
+// "Load more" button. Without a pause the stream always outruns the reader —
+// the page never has a bottom edge, so the site footer can never be reached.
+const BURST_PAGES = 6;
 
 export default function HomeStream() {
   const { showNsfw } = useNsfw();
+  const { endless } = useEndless();
   // Remount the stream when the NSFW preference flips so all infinite-scroll
-  // state resets cleanly (no manual setState juggling in an effect).
-  return <HomeStreamInner key={showNsfw ? "nsfw" : "sfw"} showNsfw={showNsfw} />;
+  // state resets cleanly (no manual setState juggling in an effect). The
+  // endless-scroll preference is passed through instead: flipping it changes
+  // how the next batch arrives, it shouldn't throw away what's on screen.
+  return (
+    <HomeStreamInner key={showNsfw ? "nsfw" : "sfw"} showNsfw={showNsfw} endless={endless} />
+  );
 }
 
-function HomeStreamInner({ showNsfw }: { showNsfw: boolean }) {
+function HomeStreamInner({ showNsfw, endless }: { showNsfw: boolean; endless: boolean }) {
   const [rows, setRows] = useState<Card[]>([]);
   const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  // Auto-loads left in the current burst; a manual "Load more" refills it.
+  const [autoLeft, setAutoLeft] = useState(BURST_PAGES);
 
   const pageRef = useRef(1);
   const busyRef = useRef(false);
   const sentinel = useRef<HTMLDivElement>(null);
 
-  const loadMore = useCallback(async () => {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    await Promise.resolve();
-    setLoading(true);
-    try {
-      const next = pageRef.current;
-      const res = await fetch(
-        `/api/catalog?sort=year&pageSize=${PAGE_SIZE}&page=${next}${showNsfw ? "&nsfw=1" : ""}`
-      );
-      const data = await res.json();
-      setRows((prev) => {
-        const seen = new Set(prev.map((r) => r.slug));
-        const fresh = (data.rows ?? []).filter((r: Card) => !seen.has(r.slug));
-        return [...prev, ...fresh];
-      });
-      setPages(data.pages ?? 1);
-      pageRef.current = next + 1;
-      if (next >= (data.pages ?? 1)) setDone(true);
-    } finally {
-      busyRef.current = false;
-      setLoading(false);
-    }
-  }, [showNsfw]);
+  const loadMore = useCallback(
+    async (auto: boolean) => {
+      if (busyRef.current) return;
+      busyRef.current = true;
+      await Promise.resolve();
+      setLoading(true);
+      try {
+        const next = pageRef.current;
+        const res = await fetch(
+          `/api/catalog?sort=year&pageSize=${PAGE_SIZE}&page=${next}${showNsfw ? "&nsfw=1" : ""}`
+        );
+        const data = await res.json();
+        setRows((prev) => {
+          const seen = new Set(prev.map((r) => r.slug));
+          const fresh = (data.rows ?? []).filter((r: Card) => !seen.has(r.slug));
+          return [...prev, ...fresh];
+        });
+        setPages(data.pages ?? 1);
+        setTotal(typeof data.total === "number" ? data.total : null);
+        pageRef.current = next + 1;
+        if (next >= (data.pages ?? 1)) setDone(true);
+        setAutoLeft((left) => (auto ? Math.max(0, left - 1) : BURST_PAGES));
+      } finally {
+        busyRef.current = false;
+        setLoading(false);
+      }
+    },
+    [showNsfw]
+  );
 
   useEffect(() => {
-    void loadMore();
+    void loadMore(false);
+    // The first page is always fetched outright; it isn't part of a burst.
   }, [loadMore]);
 
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || done) return;
+    // No observer while the stream is paused — either because endless
+    // scrolling is switched off, or because this burst is spent.
+    if (!el || done || !endless || autoLeft <= 0) return;
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) void loadMore();
+        if (entries[0].isIntersecting) void loadMore(true);
       },
       { rootMargin: "600px 0px" }
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [loadMore, done, pages]);
+  }, [loadMore, done, endless, autoLeft, pages]);
+
+  const shown = rows.length;
 
   return (
     <>
@@ -110,12 +133,38 @@ function HomeStreamInner({ showNsfw }: { showNsfw: boolean }) {
         ))}
       </div>
       <div ref={sentinel} style={{ height: 1 }} />
-      <div className="strap" role="status" style={{ textAlign: "center", padding: "22px 0 0" }}>
-        {loading
-          ? "loading more…"
-          : done && rows.length > 0
-          ? "end of the catalogue"
-          : "scroll for more"}
+
+      <div className="stream-end">
+        {loading ? (
+          <div className="strap" role="status">
+            loading more…
+          </div>
+        ) : done ? (
+          <div className="strap" role="status">
+            {rows.length > 0
+              ? `end of the catalogue · ${shown.toLocaleString()} records shown`
+              : "no records to show"}
+          </div>
+        ) : (
+          <>
+            <button className="chip solid" onClick={() => void loadMore(false)}>
+              Load more records
+            </button>
+            <div className="strap" role="status">
+              showing {shown.toLocaleString()}
+              {total != null ? ` of ${total.toLocaleString()}` : ""} records
+            </div>
+            <p className="font-serif muted stream-end-note">
+              {endless
+                ? "Endless scrolling pauses here so the page has a bottom. Load more to carry on, or switch it off in the menu."
+                : "Endless scrolling is off — records load one batch at a time. Turn it back on in the menu."}{" "}
+              <Link href="/catalog" className="accent">
+                Open the catalogue
+              </Link>{" "}
+              to filter instead.
+            </p>
+          </>
+        )}
       </div>
     </>
   );

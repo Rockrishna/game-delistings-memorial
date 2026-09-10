@@ -634,6 +634,17 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .treemap .tile.t-soft { background: var(--paper-3); color: var(--ink); }
 .treemap .tile.t-soft .tcount { color: var(--ink-3); }
 
+/* Foot of the overview stream: the pause between bursts. Centred so the
+   "Load more" control reads as the end of the page rather than as another
+   row of the grid, and so the footer below it is clearly the page's edge. */
+.stream-end {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 26px 0 4px; text-align: center;
+}
+.stream-end-note {
+  font-size: 13px; line-height: 1.55; max-width: 56ch; margin: 0;
+}
+
 /* ===== Site footer ===== */
 .sitefoot {
   border-top: 2px solid var(--ink); background: var(--paper-2);

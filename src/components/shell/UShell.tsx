@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import NavSearch from "@/components/shell/NavSearch";
 import ThemeToggle from "@/components/shell/ThemeToggle";
 import NsfwToggle from "@/components/shell/NsfwToggle";
+import EndlessToggle from "@/components/shell/EndlessToggle";
 import NavProgress from "@/components/layout/NavProgress";
 import SiteFooter from "@/components/shell/SiteFooter";
 
@@ -83,8 +84,9 @@ export default function UShell({
       </header>
 
       <div className="navwrap">
-        {/* Desktop: full horizontal nav. Only the theme toggle lives here now;
-            the mature-content control moved into the Catalog filter rail. */}
+        {/* Desktop: full horizontal nav. The theme and endless-scroll toggles
+            live here (the menu below carries them on mobile); the
+            mature-content control moved into the Catalog filter rail. */}
         <nav className="navrow" aria-label="Primary">
           {NAV.map((n) => (
             <Link
@@ -97,6 +99,7 @@ export default function UShell({
             </Link>
           ))}
           <div className="navrow-actions">
+            <EndlessToggle labelled />
             <ThemeToggle />
           </div>
         </nav>
@@ -151,6 +154,10 @@ export default function UShell({
                 <div className="nav-menu-setting">
                   <span className="nav-menu-setting-label">Mature content</span>
                   <NsfwToggle />
+                </div>
+                <div className="nav-menu-setting">
+                  <span className="nav-menu-setting-label">Endless scroll</span>
+                  <EndlessToggle />
                 </div>
               </div>
             </div>
