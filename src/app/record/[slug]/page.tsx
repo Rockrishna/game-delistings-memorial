@@ -80,7 +80,7 @@ export default async function RecordPage({
           <div className="font-mono" style={{ fontSize: 26, fontWeight: 700, letterSpacing: "0.04em", color: "var(--accent)" }}>
             {g.callNumber}
           </div>
-          <Link href="/cataloguing" className="strap" style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>
+          <Link href="/sorting#call-numbers" className="strap" style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>
             what does this number mean?&nbsp;→
           </Link>
         </div>
@@ -239,7 +239,7 @@ export default async function RecordPage({
               ) : null}
             </div>
             <div className="font-serif muted" style={{ fontSize: 12, marginTop: 8 }}>
-              Searching any part of this number — the store code, the year, or a run of digits — will find this record again. <Link href="/cataloguing" className="accent">How the numbering works&nbsp;→</Link>
+              Searching any part of this number — the store code, the year, or a run of digits — will find this record again. <Link href="/sorting#call-numbers" className="accent">How the numbering works&nbsp;→</Link>
             </div>
           </div>
         </aside>

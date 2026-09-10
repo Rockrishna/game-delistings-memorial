@@ -576,6 +576,10 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .drawer:hover { transform: translateY(-2px); }
 .drawer:hover { background: var(--paper-3); }
 
+/* Headings that get jumped to by #hash from another page. The nav bar and the
+   search row are sticky, so an anchor landing at y=0 would sit underneath them. */
+.anchor-target { scroll-margin-top: 120px; }
+
 .marginalia { font-family: var(--hand); color: var(--accent); font-size: 13px; border-left: 2px solid var(--accent); padding-left: 8px; }
 
 /* ===== Tables ===== */
