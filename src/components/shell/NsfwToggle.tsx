@@ -39,13 +39,18 @@ export default function NsfwToggle() {
         onClick={onClick}
         aria-pressed={showNsfw}
         suppressHydrationWarning
+        aria-label={
+          showNsfw
+            ? "Mature titles are shown — hide them"
+            : "Mature titles are hidden — show them"
+        }
         title={
           showNsfw
-            ? "Mature/sexual titles are visible — click to hide them"
-            : "Mature/sexual titles are hidden — click to show them"
+            ? "Sexual and adult titles are shown — click to hide them"
+            : "Sexual and adult titles are hidden — click to show them"
         }
       >
-        {showNsfw ? "◉ NSFW on" : "⊘ NSFW off"}
+        {showNsfw ? "Shown" : "Hidden"}
       </button>
 
       <dialog
@@ -88,10 +93,10 @@ export default function NsfwToggle() {
           }}
         >
           <button className="chip" onClick={() => setWarning(false)}>
-            cancel
+            Cancel
           </button>
           <button className="chip solid" onClick={confirm}>
-            I understand · show
+            Show them
           </button>
         </div>
       </dialog>

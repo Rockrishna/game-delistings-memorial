@@ -128,10 +128,10 @@ function Mono({ children }: { children: React.ReactNode }) {
 }
 
 const ORDERS: Array<{ sort: SortKey; label: string; option: string; blurb: string }> = [
-  { sort: "title", label: "Title", option: "sort : title", blurb: "A–Z shelf order. The default everywhere." },
-  { sort: "rating", label: "Rating", option: "sort : rating ▾", blurb: "Highest IGDB score first; unrated records last." },
-  { sort: "year", label: "Newest", option: "sort : newest", blurb: "Most recent release year first. Drives the overview stream." },
-  { sort: "year-asc", label: "Oldest", option: "sort : oldest", blurb: "Earliest release year first." },
+  { sort: "title", label: "Title", option: "sort by title", blurb: "A–Z shelf order. The default everywhere." },
+  { sort: "rating", label: "Rating", option: "sort by rating", blurb: "Highest IGDB score first; unrated records last." },
+  { sort: "year", label: "Newest", option: "sort by newest", blurb: "Most recent release year first. Drives the overview stream." },
+  { sort: "year-asc", label: "Oldest", option: "sort by oldest", blurb: "Earliest release year first." },
 ];
 
 export default async function SortingPage() {
@@ -151,7 +151,7 @@ export default async function SortingPage() {
 
   return (
     <UShell total={total}>
-      <div style={{ padding: "32px 36px 8px", maxWidth: 900 }}>
+      <div className="page-prose" style={{ maxWidth: 960 }}>
         <div className="strap">SHELF ORDER</div>
         <h2 className="font-serif" style={{ fontSize: 34, margin: "6px 0 4px", fontWeight: 600 }}>
           How titles are sorted
@@ -162,9 +162,9 @@ export default async function SortingPage() {
           where it is <strong>filed</strong>. Shelf order is a different thing:
           it is the order the {total.toLocaleString()} cards are{" "}
           <strong>shown</strong>{" "}
-          in. By default that is A–Z by title, and the rules below decide what &ldquo;A–Z&rdquo;
-          means for titles that start with a symbol, a digit, an accent, or the
-          word <Mono>The</Mono>.
+          in. By default that is A–Z by title, and the rules below settle what
+          &ldquo;A–Z&rdquo; means for a title starting with a symbol, a digit,
+          an accent, or the word <Mono>The</Mono>.
         </p>
 
         <div style={{ border: "1.5px solid var(--ink)", background: "var(--paper)", padding: "18px 20px", marginTop: 24 }}>
@@ -216,8 +216,7 @@ export default async function SortingPage() {
             title is filed as it is written, so{" "}
             <Mono>The Last of Us</Mono> sits under <strong>T</strong>, not under{" "}
             <strong>L</strong>. The reason is searchability: what you type into
-            the ⌕ bar is what is printed on the card, and nothing is silently
-            rewritten behind your back.
+            the search bar is what is printed on the card.
           </p>
         </Block>
 
@@ -226,13 +225,13 @@ export default async function SortingPage() {
             Not every record is complete. When a record has no IGDB rating or no
             known release year, it does not sort as a zero — it drops to the end
             of the list, and it stays at the end whichever direction the sort
-            runs. Sorting by <Mono>oldest</Mono> will never open on a wall of
+            runs. Sorting by <Mono>oldest</Mono> never opens on a wall of
             undated records.
           </p>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 16 }}>
             {[
-              ["NO RATING", unrated, "records file last under sort : rating"],
-              ["NO RELEASE YEAR", undated, "records file last under newest and oldest"],
+              ["NO RATING", unrated, "file last when sorting by rating"],
+              ["NO RELEASE YEAR", undated, "file last when sorting by year"],
             ].map(([label, count, note]) => (
               <div key={label as string} style={{ borderTop: "1px solid var(--ink)", paddingTop: 8, flex: "1 1 220px" }}>
                 <div className="strap" style={{ fontSize: 9 }}>{label}</div>
@@ -250,20 +249,20 @@ export default async function SortingPage() {
             Two records can share a rating or a release year — thousands do. When
             they tie, the title decides, and if the titles are identical too, the
             call number does. Nothing is left to chance, so page 7 of a result
-            holds the same 24 cards every time you ask for it, and the{" "}
-            <Mono>⤓ JSON</Mono> export of a query matches what you saw on screen.
+            holds the same 24 cards every time you ask for it, and the JSON
+            export of a query matches what you saw on screen.
           </p>
         </Block>
 
         <Block strap="THE FOUR ORDERS" title="What the sort control does">
           <p className="font-serif" style={P}>
             The sort menu in the{" "}
-            <Link href="/catalog" className="accent">catalog</Link> toolbar offers
-            four orders. Each one applies to the <strong>whole filtered
-            set</strong>, not just the page on screen — change the sort and the
-            records reshuffle across every page, not within the 24 in front of
-            you. Below is the real top of the catalogue under each order, right
-            now.
+            <Link href="/catalog" className="accent">catalogue</Link> toolbar offers
+            four orders. Each applies to the <strong>whole filtered set</strong>,
+            not just the page on screen: change the sort and the records
+            reshuffle across every page rather than within the 24 in front of
+            you. Below is the top of the catalogue under each order, as it
+            stands right now.
           </p>
           <div className="sortgrid" style={{ marginTop: 18 }}>
             {ORDERS.map((o, i) => (
@@ -299,7 +298,7 @@ export default async function SortingPage() {
                   className="accent font-typewriter"
                   style={{ display: "inline-block", fontSize: 10, letterSpacing: "0.1em", marginTop: 10 }}
                 >
-                  open in the catalog →
+                  open in the catalogue →
                 </Link>
               </div>
             ))}

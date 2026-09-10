@@ -16,10 +16,10 @@ export async function generateMetadata({
   const bits = [g.year, g.publisher, g.platforms.join(", ")].filter(Boolean);
   return {
     title: g.title,
-    description: `${g.title} (${bits.join(" · ") || "delisted game"}) — catalog record ${g.callNumber} in the Delisted Games Tracker.`,
+    description: `${g.title} (${bits.join(" · ") || "delisted game"}) — catalogue record ${g.callNumber} in the Delisted Games Tracker.`,
     openGraph: {
       title: g.title,
-      description: g.summary?.slice(0, 200) ?? `Catalog record for the delisted game ${g.title}.`,
+      description: g.summary?.slice(0, 200) ?? `Catalogue record for the delisted game ${g.title}.`,
       images: g.coverUrl ? [{ url: g.coverUrl }] : undefined,
     },
   };
@@ -34,6 +34,11 @@ export default async function RecordPage({
   const [g, total] = await Promise.all([getRecord(slug), getTotalCount()]);
   if (!g) notFound();
 
+  // IGDB's status vocabulary ("offline", "delisted") is the source's word,
+  // not a reader's. Both mean the same thing here, so the page says it once
+  // in plain terms and keeps the raw value in the record itself.
+  const statusText = "Delisted";
+
   const meta: Array<[string, string]> = [
     ["Storefronts", g.platforms.join(" · ") || "—"],
     ["Genres", g.genres.join(", ") || "—"],
@@ -42,7 +47,7 @@ export default async function RecordPage({
     ["First release", g.year != null ? String(g.year) : "—"],
     ["Decade", g.decade ?? "—"],
     ["IGDB rating", g.rating != null ? `${g.rating} / 100` : "unrated"],
-    ["Status", g.statusLabel],
+    ["Status", `${statusText} · IGDB status “${g.statusLabel}”`],
   ];
   if (g.franchise) meta.push(["Franchise", g.franchise]);
   if (g.gameModes.length) meta.push(["Game modes", g.gameModes.join(", ")]);
@@ -69,37 +74,43 @@ export default async function RecordPage({
             {g.callNumber}
           </div>
           <Link href="/cataloguing" className="strap" style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>
-            what&rsquo;s this number? ↗
+            what does this number mean? →
           </Link>
         </div>
         <h2 className="font-serif" style={{ fontSize: "clamp(26px, 6vw, 42px)", fontWeight: 600, margin: "8px 0 2px" }}>{g.title}</h2>
         <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15 }}>
-          {g.developer ?? "Unknown developer"} · {g.year ?? "—"} · published by {g.publisher ?? "Unknown"}
+          {[
+            g.developer ?? "Developer unknown",
+            g.year != null ? String(g.year) : "Year unknown",
+            g.publisher ? `published by ${g.publisher}` : "publisher unknown",
+          ].join(" · ")}
         </div>
       </div>
 
-      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "320px 1fr 260px", borderTop: "1px solid var(--rule)" }}>
+      <div className="record-grid" style={{ borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: 24, borderRight: "1px solid var(--rule)" }}>
           {/* maxWidth keeps the cover postcard-sized when columns stack on phones */}
           <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4", maxWidth: 300, marginInline: "auto" }}>
             {g.coverUrl ? (
               <img src={g.coverUrl} alt={`${g.title} cover`} width={264} height={374} fetchPriority="high" />
             ) : null}
-            <div className="label">FRONTISPIECE</div>
+            {/* Only worth labelling when there is no art to label — printed
+                over a cover it just obscured it. */}
+            {g.coverUrl ? null : <div className="label">NO COVER ART</div>}
             <div className="corner-tag">{g.callNumber}</div>
           </div>
           <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span className="chip solid">{g.statusLabel}</span>
+            <span className="chip solid">{statusText}</span>
             {g.enrichedFrom ? <span className="chip">{g.enrichedFrom}</span> : null}
           </div>
 
-          <div className="bar-row" style={{ marginTop: 24 }} role="img" aria-label={`IGDB rating ${g.rating ?? "unrated"} out of 100`}>
+          <div className="bar-row compact" style={{ marginTop: 24 }} role="img" aria-label={`IGDB rating ${g.rating ?? "unrated"} out of 100`}>
             <span className="bar-name">Rating</span>
             <span className="bar-track"><span className="bar-fill accent" style={{ width: `${g.rating ?? 0}%` }} /></span>
             <span className="bar-count">{g.rating ?? "—"}</span>
           </div>
           {g.medianRating != null ? (
-            <div className="bar-row" role="img" aria-label={`Catalogue median rating ${g.medianRating} out of 100`}>
+            <div className="bar-row compact" role="img" aria-label={`Catalogue median rating ${g.medianRating} out of 100`}>
               <span className="bar-name">Median</span>
               <span className="bar-track"><span className="bar-fill" style={{ width: `${g.medianRating}%` }} /></span>
               <span className="bar-count">{g.medianRating}</span>
@@ -108,7 +119,7 @@ export default async function RecordPage({
         </div>
 
         <div style={{ padding: "24px 28px", borderRight: "1px solid var(--rule)" }}>
-          <div className="strap">CATALOG RECORD</div>
+          <div className="strap">THE RECORD</div>
           <dl style={{ display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 10, columnGap: 18, margin: "10px 0 0", fontSize: 14 }}>
             {meta.map(([k, v]) => (
               <div key={k} style={{ display: "contents" }}>
@@ -139,7 +150,7 @@ export default async function RecordPage({
           {g.adjacent.length ? (
             <>
               <hr className="hr" style={{ margin: "22px 0" }} />
-              <div className="strap">ADJACENT CARDS · SAME PUBLISHER / DECADE</div>
+              <div className="strap">RELATED RECORDS · SAME PUBLISHER OR DECADE</div>
               <div className="cardgrid tight" style={{ marginTop: 10 }}>
                 {g.adjacent.map((x) => (
                   <Link key={x.slug} href={`/record/${x.slug}`} className="indexcard" style={{ padding: 8 }}>
@@ -157,11 +168,11 @@ export default async function RecordPage({
           ) : null}
         </div>
 
-        <aside style={{ padding: "24px 20px" }}>
+        <aside className="record-aside" style={{ padding: "24px 20px" }}>
           <div style={{ border: "1.5px solid var(--ink)", padding: 16, background: "var(--paper-2)" }}>
             <div className="strap accent">DATABASE ENTRIES</div>
             <div className="font-serif muted" style={{ fontSize: 13, margin: "6px 0 12px" }}>
-              The canonical database entries this record is sourced from.
+              Where this record&rsquo;s data comes from.
             </div>
             <a
               href={igdbUrl}
@@ -170,8 +181,8 @@ export default async function RecordPage({
               className="font-serif"
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: "var(--ink)", color: "var(--paper)", fontSize: 13, fontWeight: 600 }}
             >
-              <span>↗ View on IGDB</span>
-              <span className="font-mono" style={{ opacity: 0.7 }}>↗</span>
+              <span>View on IGDB</span>
+              <span className="font-mono" aria-hidden="true" style={{ opacity: 0.7 }}>↗</span>
             </a>
             {rawgUrl ? (
               <a
@@ -181,8 +192,8 @@ export default async function RecordPage({
                 className="font-serif"
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, padding: "10px 12px", border: "1px solid var(--ink)", color: "var(--ink)", fontSize: 13, fontWeight: 600 }}
               >
-                <span>↗ View on RAWG</span>
-                <span className="font-mono" style={{ opacity: 0.7 }}>↗</span>
+                <span>View on RAWG</span>
+                <span className="font-mono" aria-hidden="true" style={{ opacity: 0.7 }}>↗</span>
               </a>
             ) : null}
             <div className="font-mono muted" style={{ fontSize: 10, marginTop: 10, letterSpacing: "0.08em" }}>
@@ -199,7 +210,7 @@ export default async function RecordPage({
               <ul className="font-serif" style={{ listStyle: "none", padding: 0, margin: "8px 0 0", fontSize: 13 }}>
                 {externalLinks.slice(0, 12).map((w, idx) => (
                   <li key={idx} style={{ padding: "6px 0", borderBottom: "1px dashed var(--rule-soft)", display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <a href={w.url} target="_blank" rel="noreferrer">↗ {w.category}</a>
+                    <a href={w.url} target="_blank" rel="noreferrer">{w.category} ↗</a>
                   </li>
                 ))}
               </ul>
@@ -212,11 +223,16 @@ export default async function RecordPage({
               call no. · {g.callNumber}
               <br />
               entry created {g.createdAt.slice(0, 10)}
-              <br />
-              last synced {g.lastSyncedAt ? g.lastSyncedAt.slice(0, 10) : "—"}
+              {/* Only worth a line once a sweep has actually written it. */}
+              {g.lastSyncedAt ? (
+                <>
+                  <br />
+                  last checked {g.lastSyncedAt.slice(0, 10)}
+                </>
+              ) : null}
             </div>
             <div className="font-serif muted" style={{ fontSize: 12, marginTop: 8 }}>
-              Search any part of the call number (store, year, or digits) in the ⌕ bar to find this record. <Link href="/cataloguing" className="accent">How the numbering works ↗</Link>
+              Searching any part of this number — the store code, the year, or a run of digits — will find this record again. <Link href="/cataloguing" className="accent">How the numbering works →</Link>
             </div>
           </div>
         </aside>

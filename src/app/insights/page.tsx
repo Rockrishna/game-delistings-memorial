@@ -92,6 +92,11 @@ function Section({
 export default async function InsightsPage() {
   const i = await getInsights();
   const heatMax = Math.max(1, ...i.heatmap.values.flat());
+  // A storefront with nothing in any decade draws a row of em dashes and
+  // nothing else, so it is left out of the grid entirely.
+  const heatRows = i.heatmap.platforms
+    .map((name, ri) => ({ name, values: i.heatmap.values[ri] }))
+    .filter((row) => row.values.some((v) => v > 0));
   const histMax = Math.max(1, ...i.ratingHist.map((b) => b.count));
   const ratedDecades = i.ratingByDecade.filter((d) => d.avg > 0);
   const avgMax = ratedDecades.length ? Math.max(...ratedDecades.map((d) => d.avg)) : 0;
@@ -127,14 +132,14 @@ export default async function InsightsPage() {
 
   return (
     <UShell total={i.total}>
-      <div style={{ padding: "32px 36px 18px", textAlign: "center", borderBottom: "3px double var(--ink)" }}>
-        <div className="strap" style={{ letterSpacing: "0.22em" }}>PATTERNS &amp; INSIGHTS</div>
+      <div style={{ padding: "32px 36px 18px", textAlign: "center", borderBottom: "2px solid var(--ink)" }}>
+        <div className="strap" style={{ letterSpacing: "0.22em" }}>INSIGHTS</div>
         <h2 className="font-display" style={{ fontWeight: 900, fontSize: "clamp(34px, 8vw, 64px)", margin: "6px 0 4px", lineHeight: 0.95, letterSpacing: "-0.02em" }}>
           The Catalogue in Numbers
         </h2>
         <p className="font-serif" style={{ color: "var(--ink-2)", maxWidth: 680, margin: "4px auto 0", fontSize: 15 }}>
-          Charts and rankings across the whole catalogue. Every figure links
-          into the catalog, pre-filtered to that slice.
+          Charts and rankings drawn from every record. Each figure is a link
+          into the catalogue, filtered to exactly what it counts.
         </p>
       </div>
 
@@ -156,16 +161,16 @@ export default async function InsightsPage() {
       </div>
 
       <div style={{ padding: "30px 36px 24px" }}>
-        <div className="strap">DISPLAY I · PLATFORM × DECADE</div>
-        <h3 className="font-serif" style={{ fontSize: 26, fontWeight: 600, margin: "4px 0 18px" }}>Where the casualties accumulated</h3>
+        <div className="strap">STOREFRONT × DECADE</div>
+        <h3 className="font-serif" style={{ fontSize: 26, fontWeight: 600, margin: "4px 0 18px" }}>Records by storefront and decade</h3>
         <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: "24px 28px", background: "var(--paper-2)" }}>
           <div className="heat-grid" style={{ ["--cols" as string]: i.heatmap.decades.length }}>
-            <div className="heat-h first">PLATFORM</div>
+            <div className="heat-h first">STOREFRONT</div>
             {i.heatmap.decades.map((d) => (<div key={d} className="heat-h">{d}</div>))}
-            {i.heatmap.platforms.map((p, ri) => (
+            {heatRows.map(({ name: p, values }) => (
               <div key={p} style={{ display: "contents" }}>
                 <div className="heat-rl">{p}</div>
-                {i.heatmap.values[ri].map((v, ci) =>
+                {values.map((v, ci) =>
                   v === 0 ? (
                     <div key={ci} className="heat-cell zero">—</div>
                   ) : (
@@ -185,7 +190,7 @@ export default async function InsightsPage() {
         </div>
       </div>
 
-      <Section strap="DISPLAY II · BY GENRE" title="What kinds of games we have lost">
+      <Section strap="BY GENRE" title="The genres best represented">
         <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
           <div className="treemap">
             {i.byGenre.map((t, idx) => {
@@ -208,8 +213,8 @@ export default async function InsightsPage() {
 
       <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
-          <div className="strap">DISPLAY III · RATING DISTRIBUTION</div>
-          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 6px" }}>Were they good?</h3>
+          <div className="strap">RATING DISTRIBUTION</div>
+          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 6px" }}>How the rated titles scored</h3>
           <p className="font-serif muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
             User score, bucketed, across the {i.ratingHist.reduce((s, b) => s + b.count, 0).toLocaleString()} rated titles.
           </p>
@@ -227,20 +232,20 @@ export default async function InsightsPage() {
           </div>
         </div>
         <div style={{ padding: "24px 32px" }}>
-          <div className="strap">DISPLAY IV · PUBLISHERS WHO LOST MOST</div>
-          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>The leaderboard of loss</h3>
+          <div className="strap">BY PUBLISHER</div>
+          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>Publishers with the most records</h3>
           <BarList rows={i.byPublisher} hrefFor={(n) => `/catalog?publisher=${enc(n)}`} />
         </div>
       </div>
 
       <div style={{ padding: "24px 36px 8px", borderTop: "1px solid var(--rule)" }}>
-        <div className="strap">DISPLAY V · ATTRIBUTE PATTERNS</div>
+        <div className="strap">CROSS-SECTIONS</div>
         <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 4px" }}>
-          What the metadata tells us
+          Slices worth opening
         </h3>
         <p className="font-serif muted" style={{ margin: "0 0 18px", fontSize: 13 }}>
-          Recurring shapes drawn from genre, platform, decade, publisher and
-          rating. Open any one in the catalog.
+          Cuts through genre, storefront, decade, publisher, and rating.
+          Open any of them in the catalogue.
         </p>
         <div className="cardgrid">
           {i.attributePatterns.map((p) => (
@@ -250,7 +255,7 @@ export default async function InsightsPage() {
               </div>
               <div className="font-serif" style={{ fontWeight: 600, fontSize: 15, marginTop: 8 }}>{p.title}</div>
               <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{p.blurb}</div>
-              <div className="accent font-typewriter" style={{ fontSize: 10, letterSpacing: "0.1em", marginTop: 12 }}>open in catalog →</div>
+              <div className="accent font-typewriter" style={{ fontSize: 10, letterSpacing: "0.1em", marginTop: 12 }}>open in the catalogue →</div>
             </Link>
           ))}
         </div>
@@ -258,27 +263,27 @@ export default async function InsightsPage() {
 
       <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
-          <div className="strap">DISPLAY VI · BY STOREFRONT</div>
-          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>Which storefronts shed the most</h3>
+          <div className="strap">BY STOREFRONT</div>
+          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>Records by storefront</h3>
           <BarList rows={i.byPlatform} hrefFor={(n) => `/catalog?platform=${enc(n)}`} />
         </div>
         <div style={{ padding: "24px 32px" }}>
-          <div className="strap">DISPLAY VII · BY DECADE</div>
-          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>When the lost games shipped</h3>
+          <div className="strap">BY DECADE</div>
+          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>Records by release decade</h3>
           <BarList rows={i.byDecade} hrefFor={(n) => `/catalog?decade=${enc(n)}`} />
         </div>
       </div>
 
       <Section
-        strap="DISPLAY VIII · DEVELOPERS"
-        title="Studios with the deepest losses"
+        strap="BY DEVELOPER"
+        title="Developers with the most records"
       >
         <BarList rows={i.byDeveloper} hrefFor={(n) => `/catalog?developer=${enc(n)}`} />
       </Section>
 
       <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: "1px solid var(--rule)" }}>
         <div style={{ padding: "24px 32px", borderRight: "1px solid var(--rule)" }}>
-          <div className="strap">DISPLAY IX · GAME MODES</div>
+          <div className="strap">BY GAME MODE</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>How they were played</h3>
           {i.byMode.length ? (
             <BarList rows={i.byMode} hrefFor={(n) => `/catalog?mode=${enc(n)}`} />
@@ -287,7 +292,7 @@ export default async function InsightsPage() {
           )}
         </div>
         <div style={{ padding: "24px 32px" }}>
-          <div className="strap">DISPLAY X · PERSPECTIVE</div>
+          <div className="strap">BY PERSPECTIVE</div>
           <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 14px" }}>Point of view</h3>
           {i.byPerspective.length ? (
             <BarList rows={i.byPerspective} hrefFor={(n) => `/catalog?perspective=${enc(n)}`} />
@@ -297,7 +302,7 @@ export default async function InsightsPage() {
         </div>
       </div>
 
-      <Section strap="DISPLAY XI · THEMES" title="The moods we have lost">
+      <Section strap="BY THEME" title="Records by theme">
         {i.byTheme.length ? (
         <div className="scroll-x" style={{ border: "1px solid var(--ink)", padding: 4, background: "var(--paper-2)" }}>
           <div className="treemap">
@@ -323,7 +328,7 @@ export default async function InsightsPage() {
       </Section>
 
       <Section
-        strap="DISPLAY XII · QUALITY OVER TIME"
+        strap="RATING BY DECADE"
         title="Average rating by decade"
         note={`Average user rating among rated titles, decade by decade. The axis is zoomed to ${axisLo}–${axisHi} so the differences between decades are visible.`}
       >
@@ -346,15 +351,15 @@ export default async function InsightsPage() {
       </Section>
 
       {i.byFranchise.length ? (
-        <Section strap="DISPLAY XIII · FRANCHISES" title="Series that lost entries">
+        <Section strap="BY SERIES" title="Series with more than one record">
           <BarList rows={i.byFranchise} hrefFor={(n) => `/catalog?q=${enc(n)}`} />
         </Section>
       ) : null}
 
       <Section
-        strap="HALL OF RECORDS · TOP RATED, WITHDRAWN"
-        title="The best games no longer sold"
-        note="The twelve highest-rated titles in the catalogue. Proof that quality is no shield against delisting."
+        strap="TOP RATED"
+        title="The highest-rated records"
+        note="The twelve highest-rated titles in the catalogue."
       >
         <div className="cardgrid">
           {i.topAcclaimed.map((g, idx) => (

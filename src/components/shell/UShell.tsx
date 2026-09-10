@@ -7,23 +7,22 @@ import NavSearch from "@/components/shell/NavSearch";
 import ThemeToggle from "@/components/shell/ThemeToggle";
 import NsfwToggle from "@/components/shell/NsfwToggle";
 import NavProgress from "@/components/layout/NavProgress";
+import SiteFooter from "@/components/shell/SiteFooter";
 
 const NAV = [
   { key: "overview", label: "Overview", href: "/", desc: "The collection at a glance" },
-  { key: "catalog", label: "The Catalog", href: "/catalog", desc: "Browse & filter every record" },
-  { key: "insights", label: "Insights", href: "/insights", desc: "Charts & patterns in the data" },
-  { key: "sorting", label: "Shelf Order", href: "/sorting", desc: "How titles are put in A–Z order" },
-  { key: "colophon", label: "Colophon", href: "/colophon", desc: "How it's made, sources & disclaimer" },
+  { key: "catalog", label: "Catalogue", href: "/catalog", desc: "Browse and filter every record" },
+  { key: "insights", label: "Insights", href: "/insights", desc: "Charts and patterns in the data" },
+  { key: "sorting", label: "Shelf order", href: "/sorting", desc: "How titles are put in A–Z order" },
+  { key: "colophon", label: "Colophon", href: "/colophon", desc: "Sources, method, and limits" },
 ];
 
 function surfaceOf(pathname: string): string {
-  if (pathname.startsWith("/catalog")) return "catalog";
-  if (pathname.startsWith("/insights")) return "insights";
-  if (pathname.startsWith("/sorting")) return "sorting";
   // Call numbers are explained on their own page, but it has no nav entry of
   // its own: it belongs to the same "how this catalogue works" surface as the
-  // Colophon, which links to it — otherwise it would leave Overview marked as
-  // the current page.
+  // Colophon, which links to it. This has to be tested before /catalog —
+  // "/cataloguing".startsWith("/catalog") is true, which used to light up the
+  // Catalogue tab on the cataloguing page.
   if (
     pathname.startsWith("/colophon") ||
     pathname.startsWith("/about") ||
@@ -31,6 +30,9 @@ function surfaceOf(pathname: string): string {
   ) {
     return "colophon";
   }
+  if (pathname === "/catalog" || pathname.startsWith("/catalog/")) return "catalog";
+  if (pathname.startsWith("/insights")) return "insights";
+  if (pathname.startsWith("/sorting")) return "sorting";
   if (pathname.startsWith("/record")) return "catalog";
   return "overview";
 }
@@ -164,6 +166,7 @@ export default function UShell({
           stable across query-string changes (filters, paging), so the Catalog
           doesn't re-animate on every filter. */}
       <main id="main" key={pathname} className="canvas">{children}</main>
+      <SiteFooter />
     </div>
   );
 }

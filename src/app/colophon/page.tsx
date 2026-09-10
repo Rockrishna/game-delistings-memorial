@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Colophon",
   description:
-    "How this catalogue of delisted games is made: IGDB as the primary source, RAWG for cross-links and gap-filling, refreshed every two months. A personal, non-commercial project.",
+    "How this catalogue of delisted games is made: IGDB as the primary source, RAWG for cross-links and gap-filling, refreshed twice a month. A personal, non-commercial project.",
 };
 
 function Block({ strap, title, children }: { strap: string; title: string; children: React.ReactNode }) {
@@ -41,7 +41,7 @@ export default async function ColophonPage() {
 
   return (
     <UShell total={total}>
-      <div style={{ padding: "32px 36px 8px", maxWidth: 820 }}>
+      <div className="page-prose">
         <div className="strap">COLOPHON</div>
         <h2 className="font-serif" style={{ fontSize: 34, margin: "6px 0 4px", fontWeight: 600 }}>
           How this catalogue is made
@@ -52,12 +52,13 @@ export default async function ColophonPage() {
           <Link href="/cataloguing" className="accent">cabinet call number</Link>, and refreshed automatically.
         </p>
         <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, margin: "10px 0 0", lineHeight: 1.6 }}>
-          Two companion pages explain the mechanics:{" "}
-          <Link href="/cataloguing" className="accent">how the call numbers work ↗</Link>{" "}
-          and <Link href="/sorting" className="accent">how titles are sorted ↗</Link>.
+          Two other pages cover the mechanics:{" "}
+          <Link href="/cataloguing" className="accent">how the call numbers work →</Link>{" "}
+          and <Link href="/sorting" className="accent">how titles are sorted →</Link>.
         </p>
 
         {/* When records were last written from the source APIs. */}
+        {lastSyncedAt ? (
         <div
           style={{
             display: "inline-flex",
@@ -75,6 +76,7 @@ export default async function ColophonPage() {
             {fmtDate(lastSyncedAt)}
           </span>
         </div>
+        ) : null}
 
         <Block strap="PRIMARY SOURCE" title="IGDB (Internet Game Database)">
           <p className="font-serif" style={P}>
@@ -113,18 +115,19 @@ export default async function ColophonPage() {
           </p>
         </Block>
 
-        <Block strap="HOW IT STAYS CURRENT" title="An automated sweep every two months">
+        <Block strap="HOW IT STAYS CURRENT" title="A scheduled sweep, twice a month">
           <p className="font-serif" style={P}>
-            A scheduled job runs <strong>every two months</strong>. It re-queries
-            IGDB for newly delisted or offline titles, adds them to the
-            catalogue, and re-checks existing records — pulling from RAWG
-            wherever IGDB leaves a gap. Games aren&rsquo;t delisted often, so a
-            bimonthly cadence keeps the catalogue current without churn. Every
-            IGDB and RAWG response is cached, so the sweep is cheap and rarely
-            re-bills the source APIs.
+            A scheduled job runs on the <strong>1st and 15th of each
+            month</strong>. It re-queries IGDB for newly delisted or offline
+            titles, adds them to the catalogue, and re-checks the records
+            already here — pulling from RAWG wherever IGDB leaves a gap. The
+            sweep is incremental: a record whose entry hasn&rsquo;t changed
+            upstream is skipped rather than rewritten, and every IGDB and RAWG
+            response is cached, so a routine run costs a handful of queries
+            rather than thousands.
           </p>
           <p className="font-mono muted" style={{ fontSize: 12, marginTop: 14 }}>
-            records last written to the database {fmtDate(lastSyncedAt)}
+            {lastSyncedAt ? `records last written to the database ${fmtDate(lastSyncedAt)}` : "no sweep recorded yet"}
             {cache.lastSyncAt ? ` · most recent source API call ${cache.lastSyncAt.slice(0, 10)}` : ""}
             {` · cached source requests ${cache.totalRequests.toLocaleString()}`}
           </p>
@@ -167,8 +170,8 @@ export default async function ColophonPage() {
         </Block>
 
         <div className="marginalia" style={{ margin: "24px 0 40px", fontSize: 14 }}>
-          Metadata via IGDB · cross-links &amp; gap-filling via RAWG · refreshed
-          every two months · a personal, non-commercial preservation project.
+          Metadata via IGDB · cross-links and gap-filling via RAWG · swept on
+          the 1st and 15th of each month.
         </div>
       </div>
     </UShell>

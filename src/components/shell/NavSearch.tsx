@@ -121,7 +121,7 @@ export default function NavSearch() {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="Search titles, people, or call number…"
+        placeholder="Search a title, a studio, or a call number…"
         aria-label="Search the catalogue"
         role="combobox"
         aria-expanded={popOpen}
@@ -165,12 +165,12 @@ export default function NavSearch() {
                 <p className="font-serif" style={{ marginTop: 8, fontSize: 13 }}>{igdb.message}</p>
               ) : (
                 <button className="chip accent" style={{ marginTop: 10 }} onClick={askIgdb}>
-                  ask IGDB if it&apos;s delisted
+                  Ask IGDB about this title
                 </button>
               )}
             </div>
           ) : null}
-          {loading ? <div className="strap" role="status" style={{ padding: 12 }}>searching…</div> : null}
+          {loading ? <div className="strap" role="status" style={{ padding: 12 }}>Searching…</div> : null}
         </div>
       ) : null}
     </div>

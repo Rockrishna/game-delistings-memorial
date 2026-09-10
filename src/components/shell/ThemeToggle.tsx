@@ -12,7 +12,7 @@ export default function ThemeToggle() {
       // Label depends on the stored preference, which the server can't know.
       suppressHydrationWarning
     >
-      {theme === "light" ? "◐ dark" : "◑ light"}
+      {theme === "light" ? "Dark" : "Light"}
     </button>
   );
 }

@@ -112,9 +112,9 @@ function HomeStreamInner({ showNsfw }: { showNsfw: boolean }) {
       <div ref={sentinel} style={{ height: 1 }} />
       <div className="strap" role="status" style={{ textAlign: "center", padding: "22px 0 0" }}>
         {loading
-          ? "drawing more cards…"
+          ? "loading more…"
           : done && rows.length > 0
-          ? "— end of the catalogue —"
+          ? "end of the catalogue"
           : "scroll for more"}
       </div>
     </>

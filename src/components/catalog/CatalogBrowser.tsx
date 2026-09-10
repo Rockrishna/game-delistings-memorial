@@ -326,17 +326,9 @@ export default function CatalogBrowser({
         <div className="strap accent">FILTERS · {activeFilterCount}</div>
         <div style={{ display: "flex", gap: 6 }}>
           {activeFilterCount ? (
-            <button className="chip" onClick={clearAll}>clear all</button>
+            <button className="chip" onClick={clearAll}>Clear all</button>
           ) : null}
-          <button className="chip rail-close" onClick={() => setRailOpen(false)}>✕ close</button>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <div className="strap" style={{ marginBottom: 6 }}>VIEW</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-          <span className="font-serif" style={{ fontSize: 13, color: "var(--ink-2)" }}>Mature content</span>
-          <NsfwToggle />
+          <button className="chip rail-close" onClick={() => setRailOpen(false)}>Close</button>
         </div>
       </div>
 
@@ -417,7 +409,7 @@ export default function CatalogBrowser({
         Has cover art only
       </label>
 
-      {FACETS.map(({ key, param }) => (
+      {FACETS.map(({ key, param }, idx) => (
         <FacetSection
           key={key}
           label={key}
@@ -425,9 +417,21 @@ export default function CatalogBrowser({
           options={facets[key] ?? []}
           selected={filters[param] ?? []}
           onToggle={toggleFacet}
-          defaultOpen={false}
+          // The two broadest facets start open: a rail of nine collapsed rows
+          // gives no sense of what can actually be filtered.
+          defaultOpen={idx < 2 || (filters[param]?.length ?? 0) > 0}
         />
       ))}
+
+      {/* Kept at the foot of the rail, below the filters proper — it is a
+          viewing preference, not a facet, and it shouldn't lead. */}
+      <div style={{ marginTop: 18 }}>
+        <div className="strap" style={{ marginBottom: 6 }}>VIEWING</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <span className="font-serif" style={{ fontSize: 13, color: "var(--ink-2)" }}>Mature content</span>
+          <NsfwToggle />
+        </div>
+      </div>
     </aside>
   );
 
@@ -435,16 +439,16 @@ export default function CatalogBrowser({
     <>
       <div style={{ padding: "20px 28px 12px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div className="strap">THE CATALOG · {mode === "simple" ? "VISUAL INDEX" : "QUERY BUILDER"}</div>
+          <div className="strap">THE CATALOGUE</div>
           <h2 className="font-serif" style={{ fontSize: 30, margin: "4px 0", fontWeight: 600 }}>
             {mode === "simple"
-              ? `${(data?.total ?? 0).toLocaleString()} cards filed`
-              : "Build a view of the ledger"}
+              ? `${(data?.total ?? 0).toLocaleString()} records`
+              : "Write a query"}
           </h2>
-          <p className="font-serif muted" style={{ margin: "2px 0 0", fontSize: 13, maxWidth: 540 }}>
+          <p className="font-serif muted" style={{ margin: "2px 0 0", fontSize: 13, maxWidth: 560 }}>
             {mode === "simple"
-              ? "Filter from the rail (sections collapse — open what you need) or switch to advanced for query syntax."
-              : "Compose any cross-section: platform:Steam decade:2010s rating:\"≥ 90\"."}
+              ? "Open the filters to narrow the shelf by storefront, decade, genre, publisher, and more."
+              : "Combine any facets in one line, then read the results as a table."}
           </p>
         </div>
         <div style={{ display: "flex", border: "1px solid var(--ink)" }}>
@@ -466,7 +470,7 @@ export default function CatalogBrowser({
                 borderRight: idx === 0 ? "1px solid var(--ink)" : "none",
               }}
             >
-              {m === "simple" ? "◧ simple" : "◨ advanced"}
+              {m === "simple" ? "cards" : "query"}
             </button>
           ))}
         </div>
@@ -474,22 +478,26 @@ export default function CatalogBrowser({
 
       {mode === "advanced" ? (
         <div style={{ padding: "18px 28px", borderTop: "1px solid var(--rule)", borderBottom: "1px solid var(--rule)", background: "var(--paper-2)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", border: "1.5px solid var(--ink)", background: "var(--paper)" }}>
-            <span className="accent font-mono" style={{ fontSize: 14 }}>$</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", border: "1.5px solid var(--ink)", background: "var(--paper)" }}>
             <input
               value={queryText}
               onChange={(e) => setQueryText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && runAdvanced()}
-              aria-label="Advanced query"
-              placeholder='where platform:Steam decade:2010s rating:"≥ 90" theme:Horror'
-              style={{ flex: 1, background: "none", border: 0, outline: "none", fontFamily: "var(--mono)", fontSize: 14, color: "var(--ink)" }}
+              aria-label="Query"
+              // No leading keyword: anything the parser doesn't read as
+              // facet:value becomes free text, so a stray "where" would be
+              // searched for as a title.
+              placeholder='platform:Steam decade:2010s rating:"≥ 90" theme:Horror'
+              style={{ flex: 1, minWidth: 0, background: "none", border: 0, outline: "none", fontFamily: "var(--mono)", fontSize: 14, color: "var(--ink)" }}
             />
-            <button className="chip" onClick={runAdvanced}>⌘↵ run</button>
+            <button className="chip solid" onClick={runAdvanced}>Run</button>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
-            <span className="font-serif muted">Try:</span>
+            <span className="font-serif muted" style={{ fontSize: 13 }}>Examples</span>
             {['publisher:Konami', 'platform:Steam decade:2010s', 'rating:"≥ 90"', 'mode:"Single player"', 'theme:Horror'].map((ex) => (
-              <button key={ex} className="chip" onClick={() => setQueryText(ex)}>{ex}</button>
+              // Shown as typed — uppercasing these would misrepresent the
+              // syntax the field expects.
+              <button key={ex} className="chip" style={{ textTransform: "none", letterSpacing: 0 }} onClick={() => setQueryText(ex)}>{ex}</button>
             ))}
           </div>
         </div>
@@ -504,8 +512,7 @@ export default function CatalogBrowser({
           aria-expanded={railOpen}
           aria-haspopup="dialog"
         >
-          <span aria-hidden="true">▤</span>
-          {railOpen ? " Hide filters" : " Filters"}
+          {railOpen ? "Hide filters" : "Filters"}
           {activeFilterCount ? ` · ${activeFilterCount}` : ""}
         </button>
         <span className="font-serif" aria-live="polite" style={{ flex: 1, minWidth: 120 }}>
@@ -519,13 +526,13 @@ export default function CatalogBrowser({
           aria-label="Sort records"
           style={{ appearance: "none" }}
         >
-          <option value="title">sort : title</option>
-          <option value="rating">sort : rating ▾</option>
-          <option value="year">sort : newest</option>
-          <option value="year-asc">sort : oldest</option>
+          <option value="title">Sort by title</option>
+          <option value="rating">Sort by rating</option>
+          <option value="year">Sort by newest</option>
+          <option value="year-asc">Sort by oldest</option>
         </select>
-        <Link className="chip" href="/sorting" title="How shelf order works">? sort rules</Link>
-        <a className="chip" href={`/api/catalog?${queryString}&pageSize=120`} download="catalogue.json">⤓ JSON</a>
+        <Link className="chip" href="/sorting" title="How shelf order works">Shelf order</Link>
+        <a className="chip" href={`/api/catalog?${queryString}&pageSize=120`} download="catalogue.json">Download JSON</a>
       </div>
 
       <div
@@ -547,11 +554,11 @@ export default function CatalogBrowser({
           {!loading && data && data.total === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 20px" }}>
               <p className="font-serif" style={{ fontSize: 16, color: "var(--ink-2)", margin: 0 }}>
-                No cards match this combination of filters.
+                No records match these filters.
               </p>
               {activeFilterCount ? (
                 <button className="chip accent" style={{ marginTop: 14 }} onClick={clearAll}>
-                  clear all filters
+                  Clear all filters
                 </button>
               ) : null}
             </div>
@@ -615,10 +622,10 @@ export default function CatalogBrowser({
           )}
 
           <nav aria-label="Pagination" style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 24, flexWrap: "wrap" }}>
-            <button className="chip" disabled={page <= 1} onClick={() => goPage(page - 1)} aria-label="Previous page">‹ prev</button>
+            <button className="chip" disabled={page <= 1} onClick={() => goPage(page - 1)} aria-label="Previous page">‹ Previous</button>
             <span className="chip solid" aria-current="page">{page}</span>
-            <span className="chip">of {data?.pages ?? 1}</span>
-            <button className="chip" disabled={page >= (data?.pages ?? 1)} onClick={() => goPage(page + 1)} aria-label="Next page">next ›</button>
+            <span className="chip" style={{ borderColor: "transparent" }}>of {data?.pages ?? 1}</span>
+            <button className="chip" disabled={page >= (data?.pages ?? 1)} onClick={() => goPage(page + 1)} aria-label="Next page">Next ›</button>
           </nav>
         </section>
       </div>

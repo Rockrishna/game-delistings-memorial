@@ -23,10 +23,10 @@ const STORE_CODES: Array<[string, string]> = [
 
 function Seg({ value, label, note }: { value: string; label: string; note: string }) {
   return (
-    <div style={{ border: "1.5px solid var(--ink)", padding: "14px 16px", background: "var(--paper-2)", flex: "1 1 160px" }}>
+    <div style={{ border: "1.5px solid var(--ink)", padding: "14px 16px", background: "var(--paper-2)", flex: "1 1 160px", display: "flex", flexDirection: "column" }}>
       <div className="font-mono" style={{ fontSize: 26, fontWeight: 700, color: "var(--accent)", letterSpacing: "0.04em" }}>{value}</div>
       <div className="strap" style={{ marginTop: 8 }}>{label}</div>
-      <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13, marginTop: 4 }}>{note}</div>
+      <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13, marginTop: 4, lineHeight: 1.45 }}>{note}</div>
     </div>
   );
 }
@@ -36,23 +36,23 @@ export default async function CataloguingPage() {
 
   return (
     <UShell total={total}>
-      <div style={{ padding: "32px 36px 48px", maxWidth: 820 }}>
+      <div className="page-prose">
         <div className="strap">THE CATALOGUE</div>
         <h2 className="font-serif" style={{ fontSize: 34, margin: "6px 0 4px", fontWeight: 600 }}>
           How the call numbers work
         </h2>
         <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, margin: 0, lineHeight: 1.6 }}>
           Every one of the {total.toLocaleString()} records is filed under a
-          call number, the way a library card catalogue files a book. It is
-          built from three parts — a cabinet, a drawer, and an item — so the
-          number itself tells you something about the game.
+          call number, the way a library card catalogue files a book. It has
+          three parts — a cabinet, a drawer, and an item — so the number itself
+          tells you where the game was sold and when it came out.
         </p>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", margin: "26px 0 18px" }}>
+        <div style={{ display: "flex", alignItems: "stretch", gap: 10, flexWrap: "wrap", margin: "26px 0 18px" }}>
           <Seg value="STE" label="Cabinet · storefront" note="Where it was primarily sold — here, Steam." />
-          <span className="font-mono" style={{ fontSize: 24, color: "var(--ink-3)" }}>·</span>
+          <span className="font-mono" aria-hidden="true" style={{ fontSize: 24, color: "var(--ink-3)", alignSelf: "center" }}>·</span>
           <Seg value="2014" label="Drawer · release year" note="The year the game first came out." />
-          <span className="font-mono" style={{ fontSize: 24, color: "var(--ink-3)" }}>·</span>
+          <span className="font-mono" aria-hidden="true" style={{ fontSize: 24, color: "var(--ink-3)", alignSelf: "center" }}>·</span>
           <Seg value="8234" label="Item · catalogue id" note="A permanent, unique number for the record." />
         </div>
 
@@ -88,7 +88,7 @@ export default async function CataloguingPage() {
           <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>
             A call number says where a record is <strong>filed</strong>. The
             order records are <strong>shown</strong> in is a separate scheme —{" "}
-            <Link href="/sorting" className="accent">how titles are sorted ↗</Link>.
+            <Link href="/sorting" className="accent">how titles are sorted →</Link>.
           </p>
         </div>
       </div>

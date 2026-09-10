@@ -68,6 +68,9 @@
 html, body {
   margin: 0;
   min-height: 100vh;
+  /* dvh tracks the real viewport once mobile browser chrome collapses, so the
+     page doesn't sit 60-odd pixels short of the bottom on a phone. */
+  min-height: 100dvh;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--serif);
@@ -151,7 +154,14 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 /* minmax(0,1fr) lets content shrink below its intrinsic min-width on small
    screens — otherwise wide blocks (heatmap, ledger) stretch the whole page
    sideways instead of scrolling inside .scroll-x. */
-.app { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr; grid-template-columns: minmax(0, 1fr); }
+/* Rows: masthead, nav, canvas, footer. The canvas takes the slack so the
+   footer sits at the bottom of the window on a short page instead of
+   floating halfway up it. */
+.app {
+  min-height: 100vh; min-height: 100dvh;
+  display: grid; grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
+}
 
 /* Past this width the catalogue stops stretching and reads as a bound sheet:
    the shell centres between hairline rules and the surround darkens a shade,
@@ -236,8 +246,10 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   background: none; border: 0; color: var(--ink-3); cursor: pointer;
   font-size: 12px; padding: 2px 6px;
 }
+/* Edges line up with the search row's own padding, so the panel hangs
+   directly under the field rather than 10px proud of it on each side. */
 .navsearch-pop {
-  position: absolute; left: 18px; right: 18px; top: calc(100% - 2px);
+  position: absolute; left: 28px; right: 28px; top: calc(100% - 2px);
   background: var(--paper); border: 1.5px solid var(--ink);
   max-height: 60vh; overflow-y: auto; z-index: 40;
 }
@@ -277,16 +289,13 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   to { transform: none; opacity: 1; }
 }
 
-/* New cards drift in with a small stagger. `backwards` keeps them invisible
-   during the delay; cards past the eighth appear together. */
-.cardgrid > * { animation: fadeUp 0.3s ease backwards; }
+/* New cards drift in with a slight stagger. `backwards` holds them invisible
+   through the delay, so the ramp is kept short and shallow — a long one reads
+   as the grid loading in pieces every time a filter changes. */
+.cardgrid > * { animation: fadeUp 0.24s ease backwards; }
 .cardgrid > *:nth-child(2) { animation-delay: 0.03s; }
 .cardgrid > *:nth-child(3) { animation-delay: 0.06s; }
-.cardgrid > *:nth-child(4) { animation-delay: 0.09s; }
-.cardgrid > *:nth-child(5) { animation-delay: 0.12s; }
-.cardgrid > *:nth-child(6) { animation-delay: 0.15s; }
-.cardgrid > *:nth-child(7) { animation-delay: 0.18s; }
-.cardgrid > *:nth-child(8) { animation-delay: 0.21s; }
+.cardgrid > *:nth-child(n + 4) { animation-delay: 0.09s; }
 
 /* While a new page/filter is being fetched, keep the old results visible but
    dimmed instead of swapping to a blank loading state. */
@@ -321,17 +330,61 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   .stack-mobile > * { border-right: 0 !important; }
 }
 
-/* Headline stat tiles: 5-up on desktop, 2-up on phones (last spans full). */
+/* Headline stat tiles: 5-up on a wide screen, 3-up on a laptop or tablet
+   (the fifth spans the gap the fourth leaves), 2-up on phones. Five columns
+   held past ~1100px squeezed 42px numerals into 190px of tile. */
 .statgrid { display: grid; grid-template-columns: repeat(5, 1fr); }
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
+  .statgrid { grid-template-columns: repeat(3, 1fr); }
+  .statgrid > div { border-bottom: 1px solid var(--rule); }
+  .statgrid > div:nth-child(3n) { border-right: 0 !important; }
+  .statgrid > div:nth-child(4) { border-right: 1px solid var(--rule) !important; border-bottom: 0; }
+  .statgrid > div:last-child { grid-column: span 2; border-bottom: 0; }
+}
+@media (max-width: 700px) {
   .statgrid { grid-template-columns: repeat(2, 1fr); }
   .statgrid > div { border-right: 0 !important; border-bottom: 1px solid var(--rule); }
+  .statgrid > div:nth-child(4) { border-right: 0 !important; border-bottom: 1px solid var(--rule); }
   .statgrid > div:last-child { grid-column: 1 / -1; border-bottom: 0; }
 }
 
+/* Record page: cover column, the record itself, and the sources rail. It used
+   to drop straight from three columns to one at 860px, which left the middle
+   column reading at ~300px on a small laptop; now the rail folds under first
+   and lays its blocks out side by side. */
+.record-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr) 260px; }
+.record-aside { display: grid; gap: 16px; align-content: start; }
+@media (max-width: 1180px) {
+  .record-grid { grid-template-columns: 300px minmax(0, 1fr); }
+  .record-grid > :nth-child(2) { border-right: 0 !important; }
+  .record-grid > :nth-child(3) {
+    grid-column: 1 / -1; border-top: 1px solid var(--rule);
+  }
+  .record-aside { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 24px; }
+}
+@media (max-width: 780px) {
+  .record-grid { grid-template-columns: minmax(0, 1fr); }
+  .record-grid > * { border-right: 0 !important; }
+  .record-grid > :nth-child(2) { border-top: 1px solid var(--rule); }
+}
+
+/* Prose surfaces (Colophon, call numbers, shelf order). Centring the measure
+   keeps the column under the eye on a wide screen instead of pinning it to
+   the left edge with half the page empty beside it. */
+.page-prose {
+  max-width: 880px; margin-inline: auto; padding: 32px 36px 56px;
+}
+@media (max-width: 720px) {
+  .page-prose { padding: 24px 18px 40px; }
+}
+
 /* Catalog filter rail: a normal grid column on desktop, a slide-up bottom
-   sheet on phones. The backdrop only exists on phones. */
-.rail-close { display: none; }
+   sheet on phones and small tablets. The backdrop only exists there.
+   `.chip.rail-close` rather than `.rail-close`: the close button is a chip,
+   and `.chip`'s own `display: inline-flex` is declared later in this file, so
+   a single-class rule here loses the cascade and the button shows on desktop
+   next to the "Hide filters" control that already does the job. */
+.chip.rail-close { display: none; }
 .rail-backdrop { display: none; }
 @media (max-width: 860px) {
   .catalog-rail {
@@ -342,7 +395,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
     padding-bottom: 48px !important;
     overscroll-behavior: contain;
   }
-  .rail-close { display: inline-flex; }
+  .chip.rail-close { display: inline-flex; }
   .rail-backdrop {
     display: block; position: fixed; inset: 0; z-index: 55;
     background: rgba(20, 17, 12, 0.45); animation: fadeIn 0.2s ease;
@@ -450,18 +503,9 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   }
   .nav-menu-setting-label { font-family: var(--serif); font-size: 15px; color: var(--ink-2); }
 
-  /* On phones the filter rail opens as a bottom-sheet tray, so its trigger
-     reads as a prominent primary button (solid, full-width) rather than a
-     quiet chip that gives no hint an overlay is coming. */
-  .catalog-filter-btn {
-    flex: 1 1 100%; justify-content: center;
-    background: var(--ink); color: var(--paper); border-color: var(--ink);
-    font-weight: 600; letter-spacing: 0.03em;
-  }
-
   .navsearch { padding: 10px 14px; }
   .navsearch input { font-size: 16px; }
-  .navsearch-pop { left: 8px; right: 8px; }
+  .navsearch-pop { left: 14px; right: 14px; }
   /* Tighter charts on phones. (Chip tap-target sizing lives in a media
      block at the end of the file — see note there.) */
   .navrow-actions { gap: 10px; padding-left: 12px; }
@@ -517,10 +561,6 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .indexcard:hover { transform: translateY(-2px); box-shadow: 0 3px 0 0 var(--rule-soft); }
 .indexcard .cover img { transition: transform 0.3s ease; }
 .indexcard:hover .cover img { transform: scale(1.03); }
-.indexcard::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 30px;
-  border-top: 1px solid var(--accent-soft); opacity: 0.4;
-}
 .indexcard:hover { background: var(--paper-2); }
 .deweycall {
   font-family: var(--typewriter); font-size: 12px; letter-spacing: 0.08em;
@@ -534,12 +574,6 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
   transition: background-color 0.18s ease, transform 0.18s ease;
 }
 .drawer:hover { transform: translateY(-2px); }
-/* Decorative "drawer pull" — sits near the top so it never collides with the
-   bottom-aligned storefront label below it. */
-.drawer::before {
-  content: ""; position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
-  width: 12px; height: 12px; border: 1.5px solid var(--ink); border-radius: 999px;
-}
 .drawer:hover { background: var(--paper-3); }
 
 .marginalia { font-family: var(--hand); color: var(--accent); font-size: 13px; border-left: 2px solid var(--accent); padding-left: 8px; }
@@ -562,6 +596,9 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .bar-row .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); transition: width 0.4s ease; }
 .bar-row .bar-fill.accent { background: var(--accent); }
 .bar-row .bar-count { color: var(--ink-3); text-align: right; }
+/* Same row inside a narrow column (the record page's rating gauges): the
+   150px name track left about 40px for the bar itself. */
+.bar-row.compact { grid-template-columns: 58px 1fr 30px; gap: 8px; font-size: 12px; }
 
 .heat-grid { display: grid; grid-template-columns: 100px repeat(var(--cols, 4), 1fr); gap: 2px; font-family: var(--mono); font-size: 12px; }
 .heat-grid .heat-h { color: var(--ink-3); padding: 6px 4px; text-align: center; text-transform: uppercase; letter-spacing: 0.08em; font-size: 10.5px; }
@@ -581,7 +618,13 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .hist .hist-val { font-family: var(--mono); font-size: 12px; color: var(--ink-2); }
 .hist .hist-label { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin-top: 2px; text-align: center; line-height: 1.2; }
 
-.treemap { display: grid; gap: 3px; grid-template-columns: repeat(12, 1fr); grid-auto-rows: 72px; font-family: var(--mono); }
+/* Tile spans are fixed per rank, so a short list (six genres, four themes)
+   used to leave holes punched through the block. `dense` backfills them with
+   whatever later tile fits. */
+.treemap {
+  display: grid; gap: 3px; grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: 72px; grid-auto-flow: row dense; font-family: var(--mono);
+}
 .treemap .tile { background: var(--ink); color: var(--paper); padding: 11px; display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; transition: filter 0.15s ease, transform 0.15s ease; }
 .treemap .tile:hover { filter: brightness(1.12); transform: scale(0.99); }
 .treemap .tile .tname { font-family: var(--serif); font-size: 17px; font-weight: 600; line-height: 1.05; }
@@ -591,6 +634,38 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
 .treemap .tile.t-soft { background: var(--paper-3); color: var(--ink); }
 .treemap .tile.t-soft .tcount { color: var(--ink-3); }
 
+/* ===== Site footer ===== */
+.sitefoot {
+  border-top: 2px solid var(--ink); background: var(--paper-2);
+  padding: 28px 36px 32px;
+}
+.sitefoot-inner {
+  display: grid; gap: 28px 32px; max-width: 1180px; margin-inline: auto;
+  grid-template-columns: 1.6fr repeat(3, minmax(120px, 0.8fr));
+}
+.sitefoot .strap { margin-bottom: 10px; }
+.sitefoot-about p {
+  font-size: 13.5px; color: var(--ink-2); margin: 0; max-width: 42ch;
+  line-height: 1.55;
+}
+.sitefoot ul { list-style: none; margin: 0; padding: 0; }
+.sitefoot li { margin-bottom: 7px; }
+.sitefoot li a {
+  font-family: var(--serif); font-size: 13.5px; color: var(--ink-2);
+  transition: color 0.15s ease;
+}
+.sitefoot li a:hover { color: var(--accent); }
+.sitefoot-note {
+  border-top: 1px solid var(--rule-soft); margin-top: 26px; padding-top: 14px;
+  font-size: 12px; color: var(--ink-3); max-width: 1180px; margin-inline: auto;
+  line-height: 1.5;
+}
+@media (max-width: 860px) {
+  .sitefoot { padding: 24px 18px 28px; }
+  .sitefoot-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 24px; }
+  .sitefoot-about { grid-column: 1 / -1; }
+}
+
 /* Phone tap targets for chips/toggles (NSFW, theme). Authored here, after the
    .chip primitive, so these win the cascade — the responsive block earlier in
    the file precedes .chip's definition, so overrides placed there lose to it
@@ -598,4 +673,32 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
    a >=44px-tall, comfortably padded touch area. */
 @media (max-width: 720px) {
   .chip { min-height: 44px; padding: 10px 15px; font-size: 12.5px; }
+}
+
+/* Wherever the rail opens as a bottom sheet rather than a column, its trigger
+   reads as a primary button — solid and full-width — instead of a quiet chip
+   that gives no hint an overlay is coming. Same cascade note as above: this
+   has to sit after `.chip`, and it keys off the sheet's own 860px
+   breakpoint, not the phone one. */
+@media (max-width: 860px) {
+  .chip.catalog-filter-btn {
+    flex: 1 1 100%; justify-content: center; min-height: 44px;
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
+    font-weight: 600; letter-spacing: 0.03em;
+  }
+}
+
+/* Landscape phones: ~390px of height, of which the masthead, nav bar and
+   search were claiming a quarter before any content showed. */
+@media (max-height: 520px) and (orientation: landscape) and (max-width: 1000px) {
+  .masthead { padding: 8px 18px; gap: 6px; }
+  .masthead h1 { font-size: 19px; }
+  .masthead .masthead-sub { font-size: 11px; margin-top: 1px; }
+  .navrow a { padding: 8px 14px; }
+  .navbar-mobile { padding: 4px 14px; }
+  .nav-menu-btn { min-height: 36px; padding: 5px 14px; }
+  .navsearch { padding: 5px 14px; }
+  .nav-menu { max-height: 74vh; }
+  .catalog-rail { top: 8vh; }
+  .chip { min-height: 34px; padding: 6px 12px; }
 }

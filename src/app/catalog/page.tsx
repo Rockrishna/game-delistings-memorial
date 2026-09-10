@@ -6,7 +6,7 @@ import { getCatalog, getTotalCount, type CatalogQuery } from "@/lib/catalog";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "The Catalog",
+  title: "The Catalogue",
   description:
     "Browse and filter every delisted game on record — by storefront, decade, genre, publisher, rating, and more.",
 };

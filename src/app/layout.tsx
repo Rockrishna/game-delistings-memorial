@@ -30,7 +30,7 @@ const atkinson = Atkinson_Hyperlegible({
 
 const SITE_NAME = "Delisted Games Tracker";
 const SITE_DESCRIPTION =
-  "A scholarly card-catalog of video games pulled from major digital storefronts. Browse, filter, and read records sourced from IGDB.";
+  "A card catalogue of video games that are no longer sold on major digital storefronts. Browse, filter, and read every record, sourced from IGDB and RAWG.";
 const PROD_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : "http://localhost:3000";
