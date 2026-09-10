@@ -53,8 +53,8 @@ export default async function ColophonPage() {
         </p>
         <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, margin: "10px 0 0", lineHeight: 1.6 }}>
           Two other pages cover the mechanics:{" "}
-          <Link href="/cataloguing" className="accent">how the call numbers work →</Link>{" "}
-          and <Link href="/sorting" className="accent">how titles are sorted →</Link>.
+          <Link href="/cataloguing" className="accent">how the call numbers work&nbsp;→</Link>{" "}
+          and <Link href="/sorting" className="accent">how titles are sorted&nbsp;→</Link>.
         </p>
 
         {/* When records were last written from the source APIs. */}

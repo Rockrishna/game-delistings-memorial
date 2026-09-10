@@ -88,7 +88,7 @@ export default async function CataloguingPage() {
           <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>
             A call number says where a record is <strong>filed</strong>. The
             order records are <strong>shown</strong> in is a separate scheme —{" "}
-            <Link href="/sorting" className="accent">how titles are sorted →</Link>.
+            <Link href="/sorting" className="accent">how titles are sorted&nbsp;→</Link>.
           </p>
         </div>
       </div>
