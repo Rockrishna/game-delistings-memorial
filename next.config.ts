@@ -12,13 +12,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["apicalypse", "better-queue", "better-queue-memory", "axios"],
   // Allow the Docker container hostname to access the dev server (HMR, etc.)
   allowedDevOrigins: ["game-delistings-tracker-app-1"],
-  // Retired URLs, kept alive: "About the data" became the broader "Colophon",
-  // and the standalone call-number page is now a section of Shelf order.
+  // The "About the data" page is now the broader "Colophon"; keep old links alive.
   async redirects() {
-    return [
-      { source: "/about-igdb", destination: "/colophon", permanent: true },
-      { source: "/cataloguing", destination: "/sorting#call-numbers", permanent: true },
-    ];
+    return [{ source: "/about-igdb", destination: "/colophon", permanent: true }];
   },
 };
 

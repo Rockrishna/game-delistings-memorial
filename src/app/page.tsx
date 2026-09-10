@@ -23,8 +23,8 @@ export default async function OverviewPage() {
   const begin = [
     { t: "Browse the catalogue", d: `Filter ${o.total.toLocaleString()} records by storefront, decade, genre, publisher, and more.`, a: "open the catalogue →", href: "/catalog" },
     { t: "Read the insights", d: "Charts and rankings across the whole collection, each one a link back into the catalogue.", a: "see the charts →", href: "/insights" },
-    { t: "Check the shelf order", d: "Why 2 Fast 2 Furious files before Alpha Protocol, what STE · 2014 · 8234 means, and where blanks go.", a: "shelf order and call numbers →", href: "/sorting" },
-    { t: "See where the data comes from", d: "Which databases the records are built from, how often they refresh, and what the catalogue does not claim to know.", a: "sources and method →", href: "/colophon" },
+    { t: "Understand a call number", d: "What STE · 2014 · 8234 means, and how to search by any part of it.", a: "how filing works →", href: "/cataloguing" },
+    { t: "Check the shelf order", d: "Why 2 Fast 2 Furious files before Alpha Protocol, and where blanks go.", a: "shelf order →", href: "/sorting" },
   ];
 
   return (
@@ -36,7 +36,7 @@ export default async function OverviewPage() {
           <p className="font-serif" style={{ fontSize: 18, color: "var(--ink-2)", maxWidth: 660, margin: "6px 0 0" }}>
             games no longer sold on major digital storefronts, catalogued from
             public game databases. Each one has a record of its own and a{" "}
-            <Link href="/sorting#call-numbers" className="accent">call number</Link>{" "}
+            <Link href="/cataloguing" className="accent">call number</Link>{" "}
             saying where it is filed.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 18, marginTop: 30 }}>

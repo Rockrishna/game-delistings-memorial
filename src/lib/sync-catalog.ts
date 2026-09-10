@@ -70,7 +70,7 @@ export function primaryFamilyCode(platformNames: string[]): string {
  * Descriptive "cabinet filing" call number: {STORE} · {YEAR} · {igdbId}
  * e.g. "STE · 2014 · 8234". The igdbId tail keeps it globally unique and
  * stable; the store/year prefix makes it meaningful and searchable by segment.
- * Unknown year → "----". See /sorting#call-numbers for the full explanation.
+ * Unknown year → "----". See /cataloguing for the full explanation.
  */
 export function callNumberFor(
   igdbId: number,

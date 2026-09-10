@@ -18,8 +18,8 @@ const COLUMNS: Array<{ heading: string; links: Array<{ label: string; href: stri
   {
     heading: "How it works",
     links: [
+      { label: "Call numbers", href: "/cataloguing" },
       { label: "Shelf order", href: "/sorting" },
-      { label: "Call numbers", href: "/sorting#call-numbers" },
       { label: "Sources and method", href: "/colophon" },
     ],
   },

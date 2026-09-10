@@ -14,14 +14,17 @@ const NAV = [
   { key: "overview", label: "Overview", href: "/", desc: "The collection at a glance" },
   { key: "catalog", label: "Catalogue", href: "/catalog", desc: "Browse and filter every record" },
   { key: "insights", label: "Insights", href: "/insights", desc: "Charts and patterns in the data" },
-  { key: "sorting", label: "Shelf order", href: "/sorting", desc: "A–Z order, and how call numbers are built" },
+  { key: "cataloguing", label: "Cataloguing", href: "/cataloguing", desc: "What a call number means" },
+  { key: "sorting", label: "Shelf order", href: "/sorting", desc: "How titles are put in A–Z order" },
   { key: "colophon", label: "Colophon", href: "/colophon", desc: "Sources, method, and limits" },
 ];
 
 function surfaceOf(pathname: string): string {
-  // Tested before /catalog because "/colophon" and friends are unrelated
-  // surfaces; the catalogue match itself stays exact so a sibling route
-  // beginning "/catalog…" can never light up the Catalogue tab.
+  // Has to be tested before /catalog — "/cataloguing".startsWith("/catalog")
+  // is true, which used to light up the Catalogue tab on the cataloguing
+  // page (and, later, made the page borrow the Colophon tab instead of
+  // having its own — it now gets its own NAV entry above).
+  if (pathname.startsWith("/cataloguing")) return "cataloguing";
   if (pathname.startsWith("/colophon") || pathname.startsWith("/about")) {
     return "colophon";
   }

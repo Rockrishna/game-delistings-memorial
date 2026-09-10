@@ -5,9 +5,9 @@ import { getCatalog, getTotalCount, type SortKey } from "@/lib/catalog";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Shelf order and call numbers",
+  title: "How titles are sorted",
   description:
-    "How the catalogue puts titles in A–Z order — symbols, then numbers, then letters — how case, accents and digits are handled, where blank values file, and how a STORE · YEAR · ID call number is built.",
+    "Shelf order explained: how the catalogue puts titles in A–Z order — symbols, then numbers, then letters — how case, accents and digits are handled, and where blank values file.",
 };
 
 /* The example shelf drawn in the graphic. `key` marks the part of the title
@@ -22,20 +22,6 @@ const SHELF: Array<{ before: string; key: string; after: string; note: string }>
   { before: "Pok", key: "é", after: "mon Snap", note: "accents fold: é = e" },
   { before: "", key: "The", after: " Last of Us", note: "articles are kept: files under T" },
   { before: "Zoo Tycoon ", key: "2", after: "", note: "…and so on to Z" },
-];
-
-/* Cabinet codes, one per storefront, as they appear in a call number. Moved
-   here from the old standalone /cataloguing page: filing and shelf order are
-   two halves of the same question and were never worth two pages. */
-const STORE_CODES: Array<[string, string]> = [
-  ["STE", "Steam / PC"],
-  ["PLA", "PlayStation"],
-  ["XBO", "Xbox"],
-  ["NIN", "Nintendo"],
-  ["IOS", "iOS / App Store"],
-  ["AND", "Android"],
-  ["EPI", "Epic Games Store"],
-  ["GEN", "Other / unclassified"],
 ];
 
 const ROW_H = 36;
@@ -119,17 +105,6 @@ function ShelfGraphic() {
   );
 }
 
-/* One segment of a call number, drawn as a card. */
-function Seg({ value, label, note }: { value: string; label: string; note: string }) {
-  return (
-    <div style={{ border: "1.5px solid var(--ink)", padding: "14px 16px", background: "var(--paper-2)", flex: "1 1 160px", display: "flex", flexDirection: "column" }}>
-      <div className="font-mono" style={{ fontSize: 26, fontWeight: 700, color: "var(--accent)", letterSpacing: "0.04em" }}>{value}</div>
-      <div className="strap" style={{ marginTop: 8 }}>{label}</div>
-      <div className="font-serif" style={{ color: "var(--ink-2)", fontSize: 13, marginTop: 4, lineHeight: 1.45 }}>{note}</div>
-    </div>
-  );
-}
-
 function Block({ strap, title, children }: { strap: string; title: string; children: React.ReactNode }) {
   return (
     <div style={{ padding: "26px 0", borderTop: "1px solid var(--rule)" }}>
@@ -179,11 +154,11 @@ export default async function SortingPage() {
       <div className="page-prose" style={{ maxWidth: 960 }}>
         <div className="strap">SHELF ORDER</div>
         <h2 className="font-serif" style={{ fontSize: 34, margin: "6px 0 4px", fontWeight: 600 }}>
-          How titles are sorted and filed
+          How titles are sorted
         </h2>
         <p className="font-serif" style={{ color: "var(--ink-2)", fontSize: 15, margin: 0, lineHeight: 1.6 }}>
           Every record has a{" "}
-          <Link href="#call-numbers" className="accent">call number</Link> that says
+          <Link href="/cataloguing" className="accent">call number</Link> that says
           where it is <strong>filed</strong>. Shelf order is a different thing:
           it is the order the {total.toLocaleString()} cards are{" "}
           <strong>shown</strong>{" "}
@@ -330,72 +305,28 @@ export default async function SortingPage() {
           </div>
         </Block>
 
-        {/* The former /cataloguing page, folded in. It is linked from the
-            overview, the footer, the colophon and every record, all of which
-            point at #call-numbers. */}
-        <div
-          id="call-numbers"
-          className="anchor-target"
-          style={{ padding: "26px 0", borderTop: "1px solid var(--rule)" }}
-        >
-          <div className="strap">FILING</div>
-          <h3 className="font-serif" style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 12px" }}>
-            How the call numbers work
-          </h3>
+        <Block strap="SORTING VS FILING" title="Shelf order is not the call number">
           <p className="font-serif" style={P}>
-            Shelf order is temporary — it is however you asked the catalogue to
-            lay the cards out this minute. A call number is permanent. Each of
-            the {total.toLocaleString()} records has one, the way a library card
-            catalogue files a book, and it has three parts: a cabinet, a drawer,
-            and an item.
-          </p>
-
-          <div style={{ display: "flex", alignItems: "stretch", gap: 10, flexWrap: "wrap", margin: "22px 0 18px" }}>
-            <Seg value="STE" label="Cabinet · storefront" note="Where it was primarily sold — here, Steam." />
-            <span className="font-mono" aria-hidden="true" style={{ fontSize: 24, color: "var(--ink-3)", alignSelf: "center" }}>·</span>
-            <Seg value="2014" label="Drawer · release year" note="The year the game first came out." />
-            <span className="font-mono" aria-hidden="true" style={{ fontSize: 24, color: "var(--ink-3)", alignSelf: "center" }}>·</span>
-            <Seg value="8234" label="Item · catalogue id" note="A permanent, unique number for the record." />
-          </div>
-
-          <p className="font-serif" style={P}>
-            So <span className="font-mono accent" style={{ fontWeight: 700 }}>STE · 2014 · 8234</span>{" "}
-            reads as: a Steam title, released in 2014, filed as item 8234. When
-            the release year is unknown the drawer shows <Mono>----</Mono>. A game
-            sold on several storefronts is filed under one primary cabinet.
-          </p>
-
-          <div style={{ marginTop: 24 }}>
-            <div className="strap">CABINET CODES</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px 24px", marginTop: 14 }}>
-              {STORE_CODES.map(([code, name]) => (
-                <div key={code} style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                  <span className="font-mono accent" style={{ fontWeight: 700, fontSize: 15, minWidth: 42 }}>{code}</span>
-                  <span className="font-serif" style={{ color: "var(--ink-2)", fontSize: 14 }}>{name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="font-serif" style={P}>
-            The search bar reads call numbers, so you can look a record up by any
-            part of its number: a cabinet code like <Mono>STE</Mono>, a year like{" "}
-            <Mono>2014</Mono>, or any run of digits like <Mono>823</Mono>. A
-            partial number narrows the catalogue to the records whose filing
-            number contains it — which are then laid out in whichever order the
-            sort control is set to.
+            The two systems answer different questions. A{" "}
+            <Link href="/cataloguing" className="accent">call number</Link> —{" "}
+            <Mono>STE · 2014 · 8234</Mono> — is permanent: it says which
+            storefront cabinet and which release-year drawer a record belongs to,
+            and it never changes. Shelf order is temporary: it is however you
+            asked the catalogue to lay the cards out this minute. Filtering
+            changes which cards are on the shelf; sorting changes the order they
+            lie in; neither one alters a call number.
           </p>
           <p className="font-serif" style={P}>
-            Filtering changes which cards are on the shelf; sorting changes the
-            order they lie in. Neither one alters a call number: a record keeps
-            the same STORE · YEAR · ID wherever it happens to land on screen.
+            One place they meet: the search bar reads call numbers too, so typing{" "}
+            <Mono>STE</Mono>, <Mono>2014</Mono> or a partial{" "}
+            <Mono>823</Mono> narrows the shelf to matching records — which are
+            then laid out in whichever order the sort control is set to.
           </p>
-        </div>
+        </Block>
 
         <div className="marginalia" style={{ margin: "24px 0 40px", fontSize: 14 }}>
-          Shown in order: symbols, then numbers, then letters · case and accents
-          ignored · digits read as numbers · blanks last · ties broken by title,
-          then call number. Filed for good under STORE · YEAR · ID.
+          Symbols, then numbers, then letters · case and accents ignored · digits
+          read as numbers · blanks last · ties broken by title, then call number.
         </div>
       </div>
     </UShell>
