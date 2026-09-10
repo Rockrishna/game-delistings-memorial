@@ -47,7 +47,14 @@ export default async function RecordPage({
     ["First release", g.year != null ? String(g.year) : "—"],
     ["Decade", g.decade ?? "—"],
     ["IGDB rating", g.rating != null ? `${g.rating} / 100` : "unrated"],
-    ["Status", `${statusText} · IGDB status “${g.statusLabel}”`],
+    [
+      "Status",
+      // IGDB says either "delisted" or "offline"; only the second is worth
+      // spelling out beside our own word for it.
+      g.statusLabel.toLowerCase() === statusText.toLowerCase()
+        ? statusText
+        : `${statusText} · IGDB status “${g.statusLabel}”`,
+    ],
   ];
   if (g.franchise) meta.push(["Franchise", g.franchise]);
   if (g.gameModes.length) meta.push(["Game modes", g.gameModes.join(", ")]);

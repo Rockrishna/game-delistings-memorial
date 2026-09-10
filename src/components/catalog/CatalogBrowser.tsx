@@ -309,6 +309,11 @@ export default function CatalogBrowser({
   }
 
   const facets = data?.facets ?? {};
+  // The heading already carries the total, so the toolbar reports the slice
+  // of it that is actually on screen.
+  const total = data?.total ?? 0;
+  const firstOnPage = total === 0 ? 0 : (page - 1) * 24 + 1;
+  const lastOnPage = Math.min(page * 24, total);
   const activeChips = Object.entries(filters).flatMap(([k, vals]) =>
     vals.map((v) => ({ k, v }))
   );
@@ -515,8 +520,15 @@ export default function CatalogBrowser({
           {railOpen ? "Hide filters" : "Filters"}
           {activeFilterCount ? ` · ${activeFilterCount}` : ""}
         </button>
-        <span className="font-serif" aria-live="polite" style={{ flex: 1, minWidth: 120 }}>
-          <strong>{(data?.total ?? 0).toLocaleString()}</strong> records
+        <span className="font-serif" aria-live="polite" style={{ flex: 1, minWidth: 140 }}>
+          {total > 0 ? (
+            <>
+              Showing <strong>{firstOnPage.toLocaleString()}–{lastOnPage.toLocaleString()}</strong>{" "}
+              of {total.toLocaleString()}
+            </>
+          ) : (
+            "No records"
+          )}
           {loading ? <span className="muted"> · loading…</span> : null}
         </span>
         <select
