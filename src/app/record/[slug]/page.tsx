@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import UShell from "@/components/shell/UShell";
 import { getRecord, getTotalCount } from "@/lib/catalog";
 
-// Records only change when a sync sweep writes them, so the rendered page
-// can sit in the Data Cache instead of hitting Postgres on every prefetch —
-// matching the 5-minute TTL that getAllCards() already uses in-memory.
-export const revalidate = 300;
+// A bare `[slug]` segment with no generateStaticParams still renders on
+// demand on this Next version regardless of `revalidate`, so this stays
+// force-dynamic; getRecord() carries its own in-memory TTL cache instead
+// (see src/lib/catalog.ts) so a prefetch or repeat visit doesn't re-query
+// Postgres every time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,

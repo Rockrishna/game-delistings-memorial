@@ -166,6 +166,7 @@ let cardCacheInFlight: Promise<GameCard[]> | null = null;
 
 export function invalidateCatalogCache() {
   cardCache = null;
+  recordCache.clear();
 }
 
 async function getAllCards(): Promise<GameCard[]> {
@@ -537,12 +538,28 @@ export async function getInsights() {
 
 /* ---------------- Record ---------------- */
 
+// Next's route-level revalidate/ISR doesn't apply here (a bare `[slug]`
+// segment with no generateStaticParams still renders on demand on this
+// Next version), so record lookups get the same kind of in-memory TTL
+// cache as getAllCards() instead of relying on the framework's HTTP cache.
+const recordCache = new Map<string, { at: number; data: RecordResult }>();
+
 // React cache() dedupes the generateMetadata + page-body calls within one
-// request into a single set of queries.
+// request into a single set of queries; recordCache carries that across
+// separate requests for CARD_CACHE_TTL_MS.
 export const getRecord = cache(async function getRecord(
   slug: string,
   opts?: { includeNsfw?: boolean }
 ) {
+  const key = `${slug}:${opts?.includeNsfw ? 1 : 0}`;
+  const hit = recordCache.get(key);
+  if (hit && Date.now() - hit.at < CARD_CACHE_TTL_MS) return hit.data;
+  const data = await loadRecord(slug, opts);
+  recordCache.set(key, { at: Date.now(), data });
+  return data;
+});
+
+async function loadRecord(slug: string, opts?: { includeNsfw?: boolean }) {
   const g = await prisma.game.findFirst({
     where: { OR: [{ slug }, { id: slug }] },
     include: gameInclude,
@@ -590,7 +607,9 @@ export const getRecord = cache(async function getRecord(
     medianRating,
     adjacent: adjacent.map(toCard),
   };
-});
+}
+
+type RecordResult = Awaited<ReturnType<typeof loadRecord>>;
 
 export async function getTotalCount(): Promise<number> {
   return (await getAllCards()).length;
