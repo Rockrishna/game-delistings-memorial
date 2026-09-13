@@ -578,7 +578,13 @@ export default function CatalogBrowser({
           {mode === "simple" ? (
             <div className="cardgrid tight">
               {(data?.rows ?? []).map((g) => (
-                <Link key={g.slug} href={`/record/${g.slug}`} className="indexcard" style={{ padding: 10 }}>
+                <Link
+                  key={g.slug}
+                  href={`/record/${g.slug}`}
+                  className="indexcard"
+                  style={{ padding: 10 }}
+                  prefetch={false}
+                >
                   <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>{g.callNumber}</div>
                   <div className={`cover ${g.coverUrl ? "has-img" : ""}`} style={{ aspectRatio: "3/4" }}>
                     {g.coverUrl ? (
@@ -617,7 +623,7 @@ export default function CatalogBrowser({
                     <tr key={g.slug}>
                       <td className="accent">{g.callNumber}</td>
                       <td>
-                        <Link href={`/record/${g.slug}`} className="font-serif" style={{ fontWeight: 600, fontSize: 13 }}>{g.title}</Link>
+                        <Link href={`/record/${g.slug}`} className="font-serif" style={{ fontWeight: 600, fontSize: 13 }} prefetch={false}>{g.title}</Link>
                         <div className="font-serif muted" style={{ fontSize: 11 }}>
                           {(g.genres[0] ?? "—")} · {g.developer ?? "Unknown"}
                         </div>

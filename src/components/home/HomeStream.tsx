@@ -103,7 +103,13 @@ function HomeStreamInner({ showNsfw, endless }: { showNsfw: boolean; endless: bo
     <>
       <div className="cardgrid tight">
         {rows.map((g) => (
-          <Link key={g.slug} href={`/record/${g.slug}`} className="indexcard" style={{ padding: 10 }}>
+          <Link
+            key={g.slug}
+            href={`/record/${g.slug}`}
+            className="indexcard"
+            style={{ padding: 10 }}
+            prefetch={false}
+          >
             <div className="deweycall" style={{ fontSize: 9, marginBottom: 6, paddingBottom: 4 }}>
               {g.callNumber}
             </div>

@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import UShell from "@/components/shell/UShell";
 import { getRecord, getTotalCount } from "@/lib/catalog";
 
-export const dynamic = "force-dynamic";
+// Records only change when a sync sweep writes them, so the rendered page
+// can sit in the Data Cache instead of hitting Postgres on every prefetch —
+// matching the 5-minute TTL that getAllCards() already uses in-memory.
+export const revalidate = 300;
 
 export async function generateMetadata({
   params,
